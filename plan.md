@@ -372,7 +372,7 @@ Optional (off by default, mention in the changelog): add to trader stock for tie
 ```
 Key,File,Type,UsedInMainMenu,NoTranslate,english
 modArmorParachute,item_modifiers,mod,,,Parachute Mod
-modArmorParachuteDesc,item_modifiers,mod,,,"A packed, steerable canopy stitched into a harness for chest armor.\n\nWhile falling, double-tap Jump to deploy. Hold Forward to dive a little faster, hold Back to flare and glide, and use Left and Right to turn. You take no fall damage while the canopy is open.\n\nDouble-tap Jump again to cut away."
+modArmorParachuteDesc,item_modifiers,mod,,,"A packed, steerable canopy stitched into a harness for chest armor.\n\nWhile falling, double-tap Jump to deploy. Hold Forward to dive a little faster, hold Back to flare and glide, and use Left and Right to slide sideways. You take no fall damage while the canopy is open.\n\nDouble-tap Jump again to cut away."
 modArmorParachuteSchematic,item_modifiers,mod,,,Parachute Mod Schematic
 ```
 Make the description text match the actual config behavior (cutaway on/off). Re-check it after tuning.
