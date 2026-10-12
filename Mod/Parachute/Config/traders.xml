@@ -1,0 +1,13 @@
+<configs>
+	<!-- Traders can roll the mod in their random armor-mod stock and the schematic
+	     in their mod-schematic stock, alongside the vanilla ones. The mod's
+	     TraderStageTemplate (modsTier2) decides when it starts to appear, and its
+	     EconomicValue sets the price: 833.34 x the traders' buy_markup of 3 = 2500
+	     before any bartering perk. -->
+	<append xpath="/traders/trader_item_groups/trader_item_group[@name='groupArmorMods']">
+		<item name="modArmorParachute"/>
+	</append>
+	<append xpath="/traders/trader_item_groups/trader_item_group[@name='schematicsModsCommon']">
+		<item name="modArmorParachuteSchematic"/>
+	</append>
+</configs>

@@ -614,10 +614,13 @@ Item creation: `new ItemValue(ItemClass.GetItem(name).type, q, q, false)` then `
 | T12 | Die in air / respawn / teleport with canopy open | Canopy and loop cleaned up; no stuck state |
 | T13 | Inventory open while falling, double-tap | No deploy |
 | T14 | `chute reload` after changing `fall_speed` to 6 | New speed applies immediately |
-| T15 | Coexist with GrapplingHook: grapple while under canopy | Define behavior: canopy auto-stows when the rope attaches (Phase 7, optional) |
+| T15 | Coexist with GrapplingHook: grapple while under canopy | No auto-stow: the canopy stays open while grappling and the two mods interact freely. No exceptions; no stuck state after release |
+| T19 | Visit traders at mid trader stage over several restocks | Mod sometimes in stock at 2500 (before bartering perks); schematic sometimes in stock. **Untested as of v0.6.0, see the note below** |
 | T16 | Exit to menu and reload the world mid-flight | No exceptions; state stowed on load |
 | T17 | Loot T2 schematic containers (`lootgroup schematicsModsAndGeneralT2`) at mid game stage | Schematic appears at a rate similar to Impact Bracing |
 | T18 | Phase 2: remote player sees canopy and banking; hears deploy; late-joiner sees an existing open canopy | ✓ |
+
+**Trader stock (T19) is shipped untested.** Added in v0.6.0 (`Config/traders.xml`, and `EconomicValue` 833.34 on the mod). It cannot be checked in a quick session: the stock is random and gated by trader stage, so it needs a long playthrough with the mods installed, across several trader restocks. Until Jason has done that, treat as unverified: that the mod and schematic appear in stock at all, that the mod's price is 2500, and that the XML patch loads without an XPath warning in the log.
 
 ---
 
@@ -644,10 +647,27 @@ Item creation: `new ItemValue(ItemClass.GetItem(name).type, q, q, false)` then `
 - All log lines start with `[Parachute]`.
 
 ## 12. Open questions for Jason (answer before or during Phase 7)
-1. **Reusable vs consumable:** keep it reusable forever (current plan), or consume it / add durability / a repack cooldown?
+1. **Reusable vs consumable:** ~~keep it reusable forever (current plan), or consume it / add durability / a repack cooldown?~~ **Decided: reusable forever.**
 2. **Cutaway:** keep "double-tap again = cut away", or only auto-stow on landing?
-3. **Recipe balance:** OK with 80 cloth, 10 leather, 3 duct tape, 1 sewing kit, 4 mechanical parts at the workbench?
-4. **Trader stock:** also sell the mod/schematic at traders (`modsTier2`), or loot only?
-5. **GrapplingHook interaction:** auto-stow when a grapple attaches? Is the GrapplingHook C# source available (path) to reuse its config/command code?
+3. **Recipe balance:** ~~OK with 80 cloth, 10 leather, 3 duct tape, 1 sewing kit, 4 mechanical parts at the workbench?~~ **Decided: yes.**
+4. **Trader stock:** ~~also sell the mod/schematic at traders (`modsTier2`), or loot only?~~ **Decided: traders randomly stock it, mod priced at 2500 (`Config/traders.xml`, EconomicValue 833.34). Not yet tested in game; needs a long playthrough (see T19).**
+5. **GrapplingHook interaction:** ~~auto-stow when a grapple attaches?~~ **Decided: no auto-stow. The canopy stays open while grappling; the two mods do not know about each other.**
 6. **Canopy style:** rectangular ram-air (planned) or a round military canopy? Any color preference?
 7. **Test outfit:** `armorScavengerOutfit` Q6 OK as the default for `chute outfit`/`kit`?
+
+## 13. GrapplingHook interaction (deferred; revisit later)
+
+**Decision (2026-10-12):** the canopy does **not** auto-stow when a grapple attaches, and neither mod knows about the other. GrapplingHook is optional and may not be installed. The points below come from reading both mods' code side by side; none has been tested in game. Nothing here should crash or leave a stuck state.
+
+| # | Behavior with both mods active | Where a fix would go |
+|---|---|---|
+| G1 | **Open canopy acts like a held Forward key on the rope.** `Patch_vpFPController.ThrottlePostfix` writes the glide into `m_MotorThrottle` every step; `Grapple.BeforeMove` reads `m_MotorThrottle` as swing input. Result: a constant 6 m/s² push in the facing direction and a quarter of the usual swing damping, so a swing can be pumped to the grapple's 30 m/s cap with no keys held. Fun "sail", or an exploit | **GrapplingHook** (preferred): ignore the throttle as input while the player has `buffParachuteDeployed`. No dependency between the mods |
+| G2 | **No canopy braking on the rope.** The grapple integrates its own velocity from `m_GravityForce` and zeroes `m_FallSpeed`, so the descent limit is discarded while attached | **GrapplingHook** only: add drag while `buffParachuteDeployed` is present |
+| G3 | **Jump does two jobs.** Jump releases the rope; double-tap Jump toggles the canopy. A double-tap to let go with the canopy open also cuts away. The canopy cannot be opened while staying on the rope (first tap releases); firing the grapple while already under canopy works. Release-and-deploy in one double-tap works | Either: a separate release key in GrapplingHook, or `deploy_input = key` here (already exists). Possibly nothing |
+| G4 | **Swing momentum is lost under canopy.** `Grapple.Detach` hands momentum to the controller, then `ThrottlePostfix` overwrites x/z with the glide speed on the next step. Upward speed is kept. The same snap happens on any deploy while moving fast, grapple or not | **Parachute** only: start `CurrentGlideSpeed`/strafe from the controller's current horizontal velocity and approach the target, instead of overwriting |
+| G5 | **No fall damage on any landing with the canopy open**, including off a fast swing. Existing parachute rule, now easier to reach | Parachute, if it should ever depend on speed |
+| G6 | **Looks:** the canopy stays inflated directly overhead when hanging still, and has no collision, so it clips through the anchor block or an overhang | Parachute visual, cosmetic |
+
+Order of calls each controller step, for whoever picks this up: `UpdateMotor` → `UpdateThrottleWalk` (parachute postfix) → `UpdateForces` (parachute postfix) → `FixedMove` (grapple prefix `BeforeMove`, then postfix `AfterMove`). The grapple therefore always sees the parachute's values and has the last word while attached.
+
+G1 and G4 are the two worth deciding first: G1 for balance, G4 because it works against swing-into-glide moves.
