@@ -594,6 +594,8 @@ Item creation: `new ItemValue(ItemClass.GetItem(name).type, q, q, false)` then `
 
 ### Phase 8: multiplayer (v1.0), §6.
 
+### Phase 9: worn parachute backpack (v1.0), §14.
+
 ---
 
 ## 9. Test plan (manual; run every item before each release)
@@ -617,8 +619,11 @@ Item creation: `new ItemValue(ItemClass.GetItem(name).type, q, q, false)` then `
 | T15 | Coexist with GrapplingHook: grapple while under canopy | No auto-stow: the canopy stays open while grappling and the two mods interact freely. No exceptions; no stuck state after release |
 | T19 | Visit traders at mid trader stage over several restocks | Mod sometimes in stock at 2500 (before bartering perks); schematic sometimes in stock. **Untested as of v0.6.0, see the note below** |
 | T16 | Exit to menu and reload the world mid-flight | No exceptions; state stowed on load |
-| T17 | Loot T2 schematic containers (`lootgroup schematicsModsAndGeneralT2`) at mid game stage | Schematic appears at a rate similar to Impact Bracing |
+| T17 | Loot T2 schematic containers (`lootgroup schematicsModsAndGeneralT2`) at mid game stage | Schematic appears at a rate similar to Impact Bracing. **Untested, see the note below** |
 | T18 | Phase 2: remote player sees canopy and banking; hears deploy; late-joiner sees an existing open canopy | ✓ |
+| T20 | v1.0 backpack (§14): install the mod in worn chest armor, view in third person and the character screen; remove it; deploy and stow | Pack appears on the back while the mod is installed and disappears when it is removed; straps and lines run from the pack when the canopy is open |
+
+**World loot (T17) is shipped untested.** `Config/loot.xml` adds the schematic to the vanilla `schematicsModsAndGeneralT2` loot group, the same pool as the Impact Bracing schematic, so it can turn up wherever tier-2 mod schematics drop. The drop is random and tied to loot stage, so like the trader stock it can only be confirmed over a long playthrough with the mods installed. Unverified until then: that the schematic drops at all, and that it is about as common as Impact Bracing's.
 
 **Trader stock (T19) is shipped untested.** Added in v0.6.0 (`Config/traders.xml`, and `EconomicValue` 833.34 on the mod). It cannot be checked in a quick session: the stock is random and gated by trader stage, so it needs a long playthrough with the mods installed, across several trader restocks. Until Jason has done that, treat as unverified: that the mod and schematic appear in stock at all, that the mod's price is 2500, and that the XML patch loads without an XPath warning in the log.
 
@@ -671,3 +676,17 @@ Item creation: `new ItemValue(ItemClass.GetItem(name).type, q, q, false)` then `
 Order of calls each controller step, for whoever picks this up: `UpdateMotor` → `UpdateThrottleWalk` (parachute postfix) → `UpdateForces` (parachute postfix) → `FixedMove` (grapple prefix `BeforeMove`, then postfix `AfterMove`). The grapple therefore always sees the parachute's values and has the last word while attached.
 
 G1 and G4 are the two worth deciding first: G1 for balance, G4 because it works against swing-into-glide moves.
+
+## 14. Worn parachute backpack (v1.0 feature; requested 2026-10-12, not started)
+
+**Goal:** while `modArmorParachute` is installed in the chest armor the player is wearing, a parachute backpack is visible on the character's back. Today the mod has no worn visual at all: the canopy, lines and riser straps only exist while the canopy is open.
+
+Notes for whoever builds it (none of this is verified in game):
+- **When to show it:** the same condition the deploy check uses, `buffParachuteHarness` on the player, which the item modifier adds and removes on equip.
+- **Where to attach it:** an upper-spine bone from `EModelSDCS.boneCatalog` (the catalog already used for the shoulder bones in `ParachuteVisual`; `Spine3` exists on this rig per `AvatarSDCSController`). Parent the pack to the bone so it follows the body's animation. The offset and rotation will need tuning by eye, and may differ between body types and bulky chest armors.
+- **The model:** a new prefab in the Unity project, built by `CanopyBuilder` or a sibling script, with no colliders or rigidbodies. The icon's pack (`IconRenderer.BuildPack`) is a rough stand-in made of primitives and is not good enough to wear; this needs a proper pack mesh with shoulder straps.
+- **First person:** the body is not drawn, so nothing to show. Check the pack never appears in front of the camera.
+- **Other views:** the character preview in the inventory screen uses its own copy of the player model, so the pack will not show there unless it is attached to that copy as well. Decide whether that matters.
+- **Tie-in with the canopy:** once the pack exists, the riser straps should rise from the pack's shoulder straps, and the deploy animation can start the canopy at the pack instead of overhead.
+- **Multiplayer:** other players should see the pack. That makes this depend on the Phase 8 work in §6: a remote player's equipped armor and its mods are already replicated by the game, so a client can decide locally whether to show the pack on someone else, without a new network message.
+- **Clipping:** the game's own backpack-style visuals and long coats may overlap it; accept or special-case.
