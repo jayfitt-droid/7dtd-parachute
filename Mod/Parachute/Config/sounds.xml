@@ -1,0 +1,13 @@
+<configs>
+	<!-- The custom deploy one-shot lives in the mod's asset bundle. The C# code
+	     plays it directly (see ParachuteAudio) and falls back to the vanilla
+	     Parachute_Opens sound if the bundle is missing. -->
+	<append xpath="/Sounds">
+		<SoundDataNode name="parachute_deploy">
+			<AudioSource name="@:Sounds/Prefabs/AudioSource_Parachute.prefab"/>
+			<AudioClip ClipName="#@modfolder:Resources/Parachute.unity3d?ParachuteDeploy"/>
+			<LocalCrouchVolumeScale value="1"/> <CrouchNoiseScale value="0.5"/> <NoiseScale value="1"/>
+			<MaxVoices value="4"/> <MaxRepeatRate value="0.2"/>
+		</SoundDataNode>
+	</append>
+</configs>

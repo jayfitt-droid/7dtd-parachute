@@ -1,0 +1,22 @@
+<configs>
+	<!-- buffParachuteHarness: the parachute mod is installed in the equipped chest
+	     armor (added/removed by the item modifier's equip triggers).
+	     buffParachuteDeployed: the canopy is currently open; used by the fall
+	     damage guard below and by the C# code. Both are hidden and permanent. -->
+	<append xpath="/buffs">
+		<buff name="buffParachuteHarness" hidden="true">
+			<stack_type value="ignore"/>
+			<duration value="0"/>
+		</buff>
+		<buff name="buffParachuteDeployed" hidden="true">
+			<stack_type value="ignore"/>
+			<duration value="0"/>
+		</buff>
+	</append>
+
+	<!-- With the canopy open, never apply the vanilla falling-damage buff. The C#
+	     patches already suppress the impact; this is the XML safety net. -->
+	<append xpath="/buffs/buff[@name='buffStatusCheck01']//triggered_effect[@trigger='onSelfFallImpact' and @buff='buffPlayerFallingDamage']">
+		<requirement name="!HasBuff" buff="buffParachuteDeployed"/>
+	</append>
+</configs>

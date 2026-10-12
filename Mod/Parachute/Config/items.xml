@@ -1,0 +1,15 @@
+<configs>
+	<!-- T2 schematic: reading it unlocks the workbench recipe. -->
+	<append xpath="/items">
+		<item name="modArmorParachuteSchematic">
+			<property name="Extends" value="schematicNoQualityMaster"/>
+			<property name="CreativeMode" value="Player"/>
+			<property name="CustomIcon" value="modArmorParachute"/>
+			<property name="Unlocks" value="modArmorParachute"/>
+			<effect_group tiered="false">
+				<triggered_effect trigger="onSelfPrimaryActionEnd" action="ModifyCVar" cvar="modArmorParachute" operation="set" value="1"/>
+				<triggered_effect trigger="onSelfPrimaryActionEnd" action="GiveExp" exp="50"/>
+			</effect_group>
+		</item>
+	</append>
+</configs>

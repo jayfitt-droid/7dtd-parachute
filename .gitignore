@@ -1,0 +1,23 @@
+# Build output
+bin/
+obj/
+build/
+*.user
+build.log
+
+# Compiled mod binaries (the shipped Config/, Resources/ bundle and icon are tracked)
+Mod/Parachute/Parachute.dll
+Mod/Parachute/Parachute.pdb
+unity/*.log
+
+# Unity project (source assets are tracked, the import cache is not)
+unity/ParachuteAssets/Library/
+unity/ParachuteAssets/Temp/
+unity/ParachuteAssets/Logs/
+unity/ParachuteAssets/Obj/
+unity/ParachuteAssets/Build/
+unity/ParachuteAssets/UserSettings/
+
+# Local scratch output
+preview/
+debug.log

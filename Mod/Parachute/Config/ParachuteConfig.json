@@ -1,0 +1,94 @@
+{
+  // Parachute settings. Edit the values, then restart the game or run
+  // "chute reload" in the console. A missing or invalid value falls back to the
+  // default shown in its comment and the game log says so. Speeds are m/s,
+  // heights are meters, times are seconds unless the name says otherwise.
+
+  // How the canopy is deployed: "double_tap_jump", "key" or "both".
+  // Default: double_tap_jump
+  "deploy_input": "double_tap_jump",
+
+  // Optional direct key, a UnityEngine KeyCode name (for example "G"). Empty
+  // turns it off. Avoid "F", which is the vanilla flashlight toggle.
+  // Default: "" (off)
+  "deploy_key": "",
+
+  // Longest gap between the two Jump taps that still counts as a double tap.
+  // Both taps must happen while airborne. Allowed: 150 to 1000. Default: 350
+  "double_tap_window_ms": 350,
+
+  // Clear air required below your feet before the canopy will open.
+  // Allowed: 0 to 50. Default: 3.0
+  "min_deploy_height": 3.0,
+
+  // Descent speed with no input. Allowed: 1 to 30. Default: 4.0
+  "fall_speed": 4.0,
+
+  // Descent while holding Forward (dive). Allowed: 1 to 30. Default: 5.5
+  "fall_speed_forward": 5.5,
+
+  // Descent while holding Back (flare/glide). Allowed: 1 to 30. Default: 2.75
+  "fall_speed_back": 2.75,
+
+  // Forward speed with no input. Allowed: 0 to 20. Default: 4.0
+  "glide_speed": 4.0,
+
+  // Forward speed while holding Forward. Allowed: 0 to 25. Default: 6.0
+  "glide_speed_forward": 6.0,
+
+  // Forward speed while holding Back. Allowed: 0 to 20. Default: 1.5
+  "glide_speed_back": 1.5,
+
+  // What Left/Right do under the canopy: "strafe" slides sideways while you
+  // keep facing where you look, "turn" rotates you. Default: strafe
+  "left_right": "strafe",
+
+  // Sideways speed while holding Left/Right in strafe mode. Allowed: 0 to 15.
+  // Default: 3.0
+  "strafe_speed": 3.0,
+
+  // Turn rate from Left/Right in turn mode, in degrees per second.
+  // Allowed: 10 to 360. Default: 75
+  "turn_rate": 75,
+
+  // How quickly the current speeds approach their targets, in m/s squared.
+  // Allowed: 0.5 to 50. Default: 6.0
+  "control_response": 6.0,
+
+  // Seconds for the canopy to brake to the neutral descent and finish opening.
+  // Allowed: 0.1 to 3. Default: 0.8
+  "deploy_time": 0.8,
+
+  // Seconds for the canopy to collapse when stowed. Allowed: 0.05 to 2.
+  // Default: 0.4
+  "stow_anim_time": 0.4,
+
+  // true: double-tap Jump again while open to cut away. Default: true
+  "allow_cutaway": true,
+
+  // Minimum wait after stowing before another deploy, in milliseconds.
+  // Allowed: 0 to 5000. Default: 300
+  "redeploy_cooldown_ms": 300,
+
+  // Fall-damage immunity kept after touchdown, in milliseconds, to cover the
+  // landing frame. Allowed: 0 to 3000. Default: 500
+  "landing_grace_ms": 500,
+
+  // Visual size of the canopy. Allowed: 0.25 to 3. Default: 1.0
+  "canopy_scale": 1.0,
+
+  // Canopy center above the player's feet, in meters. Allowed: 1 to 8.
+  // Default: 3.2
+  "canopy_height": 3.2,
+
+  // Play the vanilla looping flutter sound while the canopy is open.
+  // Default: true
+  "play_flutter_loop": true,
+
+  // Pitch of the flutter loop. 1.0 is the vanilla sound; lower is deeper and
+  // flaps more slowly. Allowed: 0.3 to 1.5. Default: 0.7
+  "flutter_pitch": 0.7,
+
+  // Verbose logging and an on-screen readout. Default: false
+  "debug": false
+}

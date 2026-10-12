@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xml>
+	<Name value="Parachute" />
+	<DisplayName value="Parachute" />
+	<Description value="A chest-armor mod that lets you deploy a steerable parachute in mid-air." />
+	<Author value="Jason" />
+	<Version value="0.4.0" />
+	<Website value="" />
+	<SkipWithAntiCheat value="true" />
+</xml>

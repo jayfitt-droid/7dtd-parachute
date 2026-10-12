@@ -1,0 +1,21 @@
+<configs>
+	<!-- A steerable canopy packed into the chest armor. Like Impact Bracing the
+	     mod has no quality tiers; the effect is a hidden buff that the C# code
+	     watches to decide whether a deploy is allowed. -->
+	<append xpath="/item_modifiers">
+		<item_modifier name="modArmorParachute" installable_tags="armorChest" modifier_tags="parachute" blocked_tags="noMods" type="attachment">
+			<property name="Extends" value="modGeneralMaster" param1="CustomIcon"/>
+			<property name="CustomIcon" value="modArmorParachute"/>
+			<property name="DescriptionKey" value="modArmorParachuteDesc"/>
+			<property name="UnlockedBy" value="modArmorParachuteSchematic"/>
+			<property name="TraderStageTemplate" value="modsTier2"/>
+			<property name="Material" value="Mcloth"/>
+			<property name="EconomicValue" value="900"/>
+			<effect_group tiered="false">
+				<requirement name="IsEquipped"/>
+				<triggered_effect trigger="onSelfEquipStart" action="AddBuff" buff="buffParachuteHarness"/>
+				<triggered_effect trigger="onSelfEquipStop" action="RemoveBuff" buff="buffParachuteHarness"/>
+			</effect_group>
+		</item_modifier>
+	</append>
+</configs>
