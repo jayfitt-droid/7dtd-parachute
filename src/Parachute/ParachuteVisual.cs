@@ -4,8 +4,9 @@ using UnityEngine;
 /// The canopy object and its animation. It is parented to the player entity
 /// root, so it follows the physics position in both first and third person. All
 /// motion is code driven; the prefab must contain no colliders or rigidbodies.
-/// In third person the riser lines are re-aimed at the character's shoulder
-/// bones every frame, so they stay attached whatever pose the body is in.
+/// A riser strap rises from each shoulder and the suspension lines on that side
+/// gather at its top; both are re-aimed every frame, at the character's
+/// shoulder bones in third person, so they stay attached in any pose.
 /// </summary>
 internal static class ParachuteVisual
 {
@@ -19,7 +20,11 @@ internal static class ParachuteVisual
     private static float currentPitch;
     private static EntityPlayerLocal owner;
     private static LineRenderer[] risers;
-    private static Vector3[] riserRestEnds;
+    private static readonly LineRenderer[] straps = new LineRenderer[2];
+    private static readonly Transform[] links = new Transform[2];
+
+    /// <summary>Length of the strap from the shoulder to where the lines gather.</summary>
+    private const float StrapLength = 0.45f;
 
     internal static void Deploy(EntityPlayerLocal player, ParachuteConfig config)
     {
@@ -39,9 +44,16 @@ internal static class ParachuteVisual
         canopy.localScale = new Vector3(0.15f, 0.4f, 0.15f) * canopyScale;
 
         owner = player;
-        risers = canopyInstance.GetComponentsInChildren<LineRenderer>();
-        riserRestEnds = new Vector3[risers.Length];
-        for (int i = 0; i < risers.Length; i++) riserRestEnds[i] = risers[i].GetPosition(1);
+        var lines = new System.Collections.Generic.List<LineRenderer>();
+        foreach (LineRenderer line in canopyInstance.GetComponentsInChildren<LineRenderer>())
+        {
+            if (line.name == "Strap_L") straps[0] = line;
+            else if (line.name == "Strap_R") straps[1] = line;
+            else lines.Add(line);
+        }
+        risers = lines.ToArray();
+        links[0] = canopy.Find("Link_L");
+        links[1] = canopy.Find("Link_R");
     }
 
     internal static void Stow(ParachuteConfig config)
@@ -93,40 +105,67 @@ internal static class ParachuteVisual
     }
 
     /// <summary>
-    /// Ends each riser at the shoulder on its side. The prefab's fixed end point
-    /// is kept in first person, where the body is not drawn, and whenever the
-    /// bones cannot be found.
+    /// Places the two riser straps and gathers the lines at their tops. Side 0
+    /// is the player's left. Each strap starts at the shoulder (the upper-arm
+    /// bone in third person; a fixed point beside the head in first person,
+    /// where the body is not drawn, or if the bone cannot be found) and points
+    /// at the middle of that side's line attachments on the canopy.
     /// </summary>
     private static void UpdateRisers()
     {
         if (risers == null || owner == null) return;
 
-        Transform left = null;
-        Transform right = null;
+        Transform leftBone = null;
+        Transform rightBone = null;
         if (!owner.bFirstPersonView && owner.emodel is EModelSDCS model && model.boneCatalog != null)
         {
-            model.boneCatalog.TryGetValue("LeftArm", out left);
-            model.boneCatalog.TryGetValue("RightArm", out right);
+            model.boneCatalog.TryGetValue("LeftArm", out leftBone);
+            model.boneCatalog.TryGetValue("RightArm", out rightBone);
         }
 
-        Transform body = owner.transform;
+        // The canopy end of a line says which side it is on: -x is the left.
+        var centroid = new Vector3[2];
+        var count = new int[2];
         for (int i = 0; i < risers.Length; i++)
         {
             LineRenderer riser = risers[i];
             if (riser == null) continue;
-
-            // The canopy end of the line says which riser this is: -x is the
-            // left side, -z is the rear rows.
             Vector3 anchor = riser.GetPosition(0);
-            Transform shoulder = anchor.x < 0f ? left : right;
-            Vector3 end = riserRestEnds[i];
-            if (shoulder != null)
+            int side = anchor.x < 0f ? 0 : 1;
+            centroid[side] += riser.transform.TransformPoint(anchor);
+            count[side]++;
+        }
+
+        Transform body = owner.transform;
+        var top = new Vector3[2];
+        for (int side = 0; side < 2; side++)
+        {
+            Transform bone = side == 0 ? leftBone : rightBone;
+            Vector3 shoulder = bone != null
+                ? bone.position + body.up * 0.05f
+                : body.TransformPoint(new Vector3(side == 0 ? -0.22f : 0.22f, 1.42f, -0.05f));
+            Vector3 toCanopy = count[side] > 0 ? centroid[side] / count[side] - shoulder : body.up;
+            if (toCanopy.sqrMagnitude < 0.0001f) toCanopy = body.up;
+            // Halfway between straight up and straight at the canopy, so the
+            // straps stand up off the shoulders instead of splaying out.
+            Vector3 direction = (toCanopy.normalized + body.up).normalized;
+            top[side] = shoulder + direction * StrapLength;
+
+            LineRenderer strap = straps[side];
+            if (strap != null)
             {
-                Vector3 world = shoulder.position + body.up * 0.05f;
-                if (anchor.z < 0f) world -= body.forward * 0.08f;
-                end = riser.transform.InverseTransformPoint(world);
+                strap.SetPosition(0, strap.transform.InverseTransformPoint(shoulder));
+                strap.SetPosition(1, strap.transform.InverseTransformPoint(top[side]));
             }
-            riser.SetPosition(1, end);
+            if (links[side] != null) links[side].position = top[side];
+        }
+
+        for (int i = 0; i < risers.Length; i++)
+        {
+            LineRenderer riser = risers[i];
+            if (riser == null) continue;
+            int side = riser.GetPosition(0).x < 0f ? 0 : 1;
+            riser.SetPosition(1, riser.transform.InverseTransformPoint(top[side]));
         }
     }
 
@@ -137,7 +176,8 @@ internal static class ParachuteVisual
         canopy = null;
         owner = null;
         risers = null;
-        riserRestEnds = null;
+        straps[0] = straps[1] = null;
+        links[0] = links[1] = null;
         currentRoll = 0f;
         currentPitch = 0f;
     }

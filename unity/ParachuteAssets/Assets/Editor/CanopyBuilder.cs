@@ -11,9 +11,11 @@ namespace ParachuteEditor
     /// so the Unity project holds no hand-made model. Run it from the Parachute
     /// menu or through BuildBundles.
     ///
-    /// Prefab layout the mod's C# relies on: every suspension line is a two-point
-    /// LineRenderer in local space whose point 0 is the canopy end (-x is the
-    /// player's left, -z is the rear rows) and whose point 1 is the shoulder end.
+    /// Prefab layout the mod's C# relies on: every suspension line ("Line_*") is
+    /// a two-point LineRenderer in local space whose point 0 is the canopy end
+    /// (-x is the player's left) and whose point 1 is the top of the riser strap
+    /// on its side. "Strap_L"/"Strap_R" are the two-point riser straps (point 0
+    /// at the shoulder) and "Link_L"/"Link_R" the connector at each strap top.
     /// </summary>
     public static class CanopyBuilder
     {
@@ -31,6 +33,12 @@ namespace ParachuteEditor
         // Suspension lines: drawn thicker than real cord so the rope twist reads.
         public const float RopeWidth = 0.024f;
         private const float RopeTilesPerMeter = 9f;
+
+        // Riser straps: webbing from each shoulder up to where the lines gather.
+        public const string StrapTexturePath = TexturesDir + "/Strap.png";
+        public const float StrapLength = 0.45f;
+        public const float StrapWidth = 0.05f;
+        private const float StrapTilesPerMeter = 14f;
 
         // Canopy shape: 7 inflated cells on a circular arc, about 6.7 m across.
         private const int Cells = 7;
@@ -321,6 +329,40 @@ namespace ParachuteEditor
             return SaveTexture(texture, RopeTexturePath, TextureWrapMode.Repeat);
         }
 
+        /// <summary>
+        /// Paints one repeat of dark nylon webbing: fine ribs across the strap
+        /// with a stitched, slightly raised edge on both sides. u runs along the
+        /// strap and tiles, v runs across it.
+        /// </summary>
+        private static Texture2D CreateStrapTexture()
+        {
+            const int width = 32;
+            const int height = 32;
+            var random = new System.Random(20261014);
+            var webbing = new Color(0.20f, 0.20f, 0.15f);
+            var pixels = new Color[width * height];
+            for (int py = 0; py < height; py++)
+            {
+                float v = (py + 0.5f) / height;
+                float fromEdge = Mathf.Min(v, 1f - v);
+                for (int px = 0; px < width; px++)
+                {
+                    float u = (px + 0.5f) / width;
+                    float shade = 0.75f + 0.25f * Mathf.Sin(2f * Mathf.PI * u * 4f);
+                    if (fromEdge < 0.16f) shade *= 1.15f;
+                    if (fromEdge < 0.05f) shade *= 0.5f;
+                    if (Mathf.Abs(fromEdge - 0.16f) < 0.025f && Mathf.Repeat(u * 4f, 1f) < 0.5f) shade *= 0.6f;
+                    shade *= 0.92f + 0.16f * (float)random.NextDouble();
+                    pixels[py * width + px] = new Color(webbing.r * shade, webbing.g * shade, webbing.b * shade, 1f);
+                }
+            }
+
+            var texture = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            texture.SetPixels(pixels);
+            texture.Apply();
+            return SaveTexture(texture, StrapTexturePath, TextureWrapMode.Repeat);
+        }
+
         private static Texture2D SaveTexture(Texture2D texture, string path, TextureWrapMode wrap)
         {
             File.WriteAllBytes(path, texture.EncodeToPNG());
@@ -341,7 +383,7 @@ namespace ParachuteEditor
 
         // ---- Prefab ----------------------------------------------------------
 
-        public static GameObject CreateCanopy(Material fabric, Material inlet, Material lines)
+        public static GameObject CreateCanopy(Material fabric, Material inlet, Material lines, Material strap, Material metal)
         {
             Mesh mesh = BuildMesh();
             AssetDatabase.CreateAsset(mesh, ModelsDir + "/ParachuteCanopyMesh.asset");
@@ -354,17 +396,66 @@ namespace ParachuteEditor
             var renderer = canopy.AddComponent<MeshRenderer>();
             renderer.sharedMaterials = new[] { fabric, inlet };
 
-            // One suspension line from every rib at each row down to the shoulder
-            // on its side. The canopy root sits one canopy_height (default 3.2 m)
-            // above the player's feet, so the shoulder is a fixed local offset;
-            // in third person the mod re-aims these at the real shoulder bones.
+            // A riser strap rises from each shoulder toward its half of the
+            // canopy, and every suspension line on that side runs from its rib
+            // down to the top of that strap. The canopy root sits one
+            // canopy_height (default 3.2 m) above the player's feet, so the
+            // shoulder here is a fixed local offset; the mod re-aims the straps
+            // and lines every frame.
+            var strapTops = new Vector3[2];
+            for (int side = 0; side < 2; side++)
+            {
+                Vector3 centroid = Vector3.zero;
+                int count = 0;
+                for (int rib = 0; rib <= Cells; rib++)
+                {
+                    foreach (float row in LineRows)
+                    {
+                        Vector3 anchor = SkinPoint(rib / (float)Cells, 0f, row, false);
+                        if ((anchor.x < 0f) != (side == 0)) continue;
+                        centroid += anchor;
+                        count++;
+                    }
+                }
+                centroid /= count;
+
+                var shoulder = new Vector3(side == 0 ? -0.25f : 0.25f, -1.8f, -0.1f);
+                strapTops[side] = shoulder + (centroid - shoulder).normalized * StrapLength;
+                string suffix = side == 0 ? "L" : "R";
+
+                var strapObject = new GameObject("Strap_" + suffix);
+                strapObject.transform.SetParent(root.transform, false);
+                var strapLine = strapObject.AddComponent<LineRenderer>();
+                strapLine.useWorldSpace = false;
+                strapLine.positionCount = 2;
+                strapLine.SetPosition(0, shoulder);
+                strapLine.SetPosition(1, strapTops[side]);
+                strapLine.startWidth = StrapWidth;
+                strapLine.endWidth = StrapWidth;
+                strapLine.textureMode = LineTextureMode.Tile;
+                strapLine.generateLightingData = true;
+                strapLine.sharedMaterial = strap;
+                strapLine.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                strapLine.receiveShadows = false;
+
+                GameObject link = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                link.name = "Link_" + suffix;
+                Object.DestroyImmediate(link.GetComponent<Collider>());
+                link.transform.SetParent(root.transform, false);
+                link.transform.localPosition = strapTops[side];
+                link.transform.localScale = Vector3.one * 0.07f;
+                var linkRenderer = link.GetComponent<MeshRenderer>();
+                linkRenderer.sharedMaterial = metal;
+                linkRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            }
+
             for (int rib = 0; rib <= Cells; rib++)
             {
                 float spanT = rib / (float)Cells;
                 for (int row = 0; row < LineRows.Length; row++)
                 {
                     Vector3 anchor = SkinPoint(spanT, 0f, LineRows[row], false);
-                    var shoulder = new Vector3(anchor.x < 0f ? -0.25f : 0.25f, -1.8f, anchor.z < 0f ? -0.2f : 0f);
+                    Vector3 shoulder = strapTops[anchor.x < 0f ? 0 : 1];
 
                     var riser = new GameObject("Line_" + rib + "_" + row);
                     riser.transform.SetParent(root.transform, false);
@@ -409,7 +500,12 @@ namespace ParachuteEditor
             lines.mainTextureScale = new Vector2(RopeTilesPerMeter, 1f);
             EditorUtility.SetDirty(lines);
 
-            GameObject root = CreateCanopy(fabric, inlet, lines);
+            Material strap = CreateMaterial("Strap", Color.white, 0.05f, false, CreateStrapTexture());
+            strap.mainTextureScale = new Vector2(StrapTilesPerMeter, 1f);
+            EditorUtility.SetDirty(strap);
+            Material metal = CreateMaterial("Link", new Color(0.22f, 0.22f, 0.21f), 0.55f, false);
+
+            GameObject root = CreateCanopy(fabric, inlet, lines, strap, metal);
             PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             Object.DestroyImmediate(root);
             AssetDatabase.SaveAssets();

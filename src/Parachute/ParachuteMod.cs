@@ -36,7 +36,7 @@ public sealed class ModApi : IModApi
 
 internal static class ParachuteMod
 {
-    internal const string Version = "0.4.0";
+    internal const string Version = "0.5.0";
     internal static string Directory = "";
     internal static ParachuteConfig Settings = new ParachuteConfig();
 

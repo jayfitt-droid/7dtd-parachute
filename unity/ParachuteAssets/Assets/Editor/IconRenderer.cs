@@ -35,8 +35,17 @@ namespace ParachuteEditor
             // Gather the lines at the top corners of the pack and thicken them so
             // they survive being shrunk to icon size.
             var packTop = new Vector3(0f, -1.25f, 0f);
+            foreach (Transform child in canopy.transform)
+                if (child.name.StartsWith("Link_")) child.gameObject.SetActive(false);
             foreach (LineRenderer line in canopy.GetComponentsInChildren<LineRenderer>())
             {
+                // The icon gathers the lines straight into the pack, so the riser
+                // straps the player wears are left out.
+                if (line.name.StartsWith("Strap_"))
+                {
+                    line.enabled = false;
+                    continue;
+                }
                 // Half the rows are enough at this size; the full set turns to mush.
                 if (line.name.EndsWith("_1") || line.name.EndsWith("_3"))
                 {
