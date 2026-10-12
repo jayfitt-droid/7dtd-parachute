@@ -2,10 +2,11 @@
 
 All notable changes to the Parachute mod. Versions match the Git tags and the version in `Mod\Parachute\ModInfo.xml`.
 
-## Unreleased
+## 0.6.1 - 2026-10-12
 
 ### Added
 - `README.md` and this changelog.
+- `package.ps1`, which builds the mod and packs `dist\Parachute-<version>.zip` for players.
 
 ### Fixed
 - The mod's in-game description said Left and Right turn you; it now says they slide you sideways, which has been the default since 0.4.0.

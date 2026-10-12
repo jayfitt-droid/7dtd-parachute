@@ -2,6 +2,7 @@
 bin/
 obj/
 build/
+dist/
 *.user
 build.log
 
