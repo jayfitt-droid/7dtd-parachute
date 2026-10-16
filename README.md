@@ -1,6 +1,6 @@
 # Parachute for 7 Days to Die v3.3.0 (b18)
 
-A single-player mod that adds a parachute as a chest-armor mod. Install it in the chest armor you are wearing, and while falling you can double-tap Jump to open a steerable ram-air canopy. You take no fall damage while the canopy is open. The parachute is not used up: it repacks itself and can be deployed again as often as you like.
+A single-player mod that adds a parachute as a chest-armor mod. Install it in the chest armor you are wearing, and while falling you can press Jump to open a steerable ram-air canopy. You take no fall damage while the canopy is open. The parachute is not used up: it repacks itself and can be deployed again as often as you like.
 
 | Item | What it is | How you get it |
 |---|---|---|
@@ -25,13 +25,14 @@ The parachute uses the game's jump and movement actions, so it follows whatever 
 
 | Input | Under the canopy |
 |---|---|
-| Double-tap Jump while in the air | Open the canopy; double-tap again to cut it away |
+| Jump while in the air | Open the canopy; press again to cut it away |
 | Forward | Dive: faster forward and a faster descent |
 | Back | Flare: slower forward and a slower descent |
 | Left / Right | Slide sideways; you keep facing where you look |
 | Mouse | Steer: the canopy glides in the direction you face |
 
-- Both taps of the double-tap must happen in the air. The tap that starts a jump from the ground does not count.
+- Only a press made in the air counts. The press that starts a jump from the ground does not, so jump once to leave the ground and press Jump again to open.
+- For a quarter of a second after the canopy opens, Jump does not cut it away, so a quick second press will not close it again.
 - The canopy needs at least 3 m of clear air below your feet to open. If it refuses to open, a tooltip says why.
 - It will not open in water, on a ladder, in a vehicle, in fly or god mode, while wearing a jetpack, or while a window is open.
 - The canopy stows by itself when you land, enter water, grab a ladder, get in a vehicle, switch to fly or god mode, remove the chest armor or the mod, die or teleport.
@@ -45,9 +46,9 @@ Edit `Mods\Parachute\Config\ParachuteConfig.json`, then restart the game or run 
 
 | Setting | Default | Meaning |
 |---|---:|---|
-| `deploy_input` | `double_tap_jump` | How the canopy is opened: `double_tap_jump`, `key` or `both` |
+| `deploy_input` | `jump` | How the canopy is opened: `jump`, `key` or `both` |
 | `deploy_key` | (off) | An optional dedicated key, as a Unity key name such as `G` |
-| `double_tap_window_ms` | 350 | Longest gap between the two taps |
+| `cutaway_lockout_ms` | 250 | After opening, how long Jump cannot cut the canopy away |
 | `min_deploy_height` | 3.0 | Clear air needed below your feet, in meters |
 | `fall_speed` | 4.0 | Descent with no input |
 | `fall_speed_forward` | 5.5 | Descent while holding Forward |
@@ -61,7 +62,7 @@ Edit `Mods\Parachute\Config\ParachuteConfig.json`, then restart the game or run 
 | `control_response` | 6.0 | How quickly speeds change, in m/s² |
 | `deploy_time` | 0.8 | Seconds for the canopy to open and brake |
 | `stow_anim_time` | 0.4 | Seconds for the canopy to collapse |
-| `allow_cutaway` | true | Whether a second double-tap cuts the canopy away |
+| `allow_cutaway` | true | Whether pressing Jump again cuts the canopy away |
 | `redeploy_cooldown_ms` | 300 | Wait after stowing before it can open again |
 | `landing_grace_ms` | 500 | Fall-damage protection kept just after touchdown |
 | `canopy_scale` | 1.0 | Visual size of the canopy |
@@ -76,7 +77,7 @@ For testing. The command is `chute`, or `parachute`.
 
 - `chute give` adds a chest outfit, the schematic and the mod to the backpack. `chute outfit [item] [quality]`, `chute mod [count]` and `chute schematic [count]` give them one at a time, and `chute kit` gives an outfit with the mod already installed.
 - `chute up [meters]` lifts you straight up (60 m by default) for a drop test.
-- `chute deploy` and `chute stow` open and close the canopy without the double-tap.
+- `chute deploy` and `chute stow` open and close the canopy without pressing Jump.
 - `chute status` prints the current state and settings, `chute reload` re-reads the config file, and `chute debug [on|off]` switches the readout.
 - The game's own `sv` command switches between first and third person, which is the easy way to look at the canopy.
 
@@ -84,7 +85,7 @@ Mod messages in the game log start with `[Parachute]`.
 
 ## With the Grappling Hook mod
 
-The two mods work side by side and do not know about each other. The canopy stays open while you are on a rope, which leads to some untested interactions: an open canopy pushes a swing along as if Forward were held, it does not slow you while the rope is attached, and Jump both releases the rope and (double-tapped) toggles the canopy. These are written up in section 13 of `plan.md`.
+The two mods work side by side and neither needs the other. The Jump press that lets go of a rope never opens or cuts away the canopy. The canopy stays open while you are on a rope, which leads to some untested interactions: an open canopy pushes a swing along as if Forward were held, and it does not slow you while the rope is attached. These are written up in section 13 of `plan.md`.
 
 ## Building from source
 

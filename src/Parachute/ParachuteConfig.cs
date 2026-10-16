@@ -6,7 +6,7 @@ using UnityEngine;
 
 internal enum DeployInput
 {
-    DoubleTapJump,
+    Jump,
     Key,
     Both
 }
@@ -24,10 +24,10 @@ internal enum LeftRightMode
 /// </summary>
 internal sealed class ParachuteConfig
 {
-    public DeployInput DeployInput = DeployInput.DoubleTapJump;
+    public DeployInput DeployInput = DeployInput.Jump;
     public string DeployKey = "";
     public KeyCode DeployKeyCode = KeyCode.None;
-    public int DoubleTapWindowMs = 350;
+    public int CutawayLockoutMs = 250;
     public float MinDeployHeight = 3f;
     public float FallSpeed = 4f;
     public float FallSpeedForward = 5.5f;
@@ -50,7 +50,7 @@ internal sealed class ParachuteConfig
     public float FlutterPitch = 0.7f;
     public bool Debug;
 
-    public float DoubleTapWindowSeconds => DoubleTapWindowMs / 1000f;
+    public float CutawayLockoutSeconds => CutawayLockoutMs / 1000f;
     public float RedeployCooldownSeconds => RedeployCooldownMs / 1000f;
     public float LandingGraceSeconds => LandingGraceMs / 1000f;
 
@@ -66,10 +66,10 @@ internal sealed class ParachuteConfig
         try
         {
             JObject data = JObject.Parse(File.ReadAllText(path));
-            result.DeployInput = Input(data, "deploy_input", DeployInput.DoubleTapJump);
+            result.DeployInput = Input(data, "deploy_input", DeployInput.Jump);
             result.DeployKey = Text(data, "deploy_key", "");
             result.DeployKeyCode = ParseKey(result.DeployKey);
-            result.DoubleTapWindowMs = Integer(data, "double_tap_window_ms", 350, 150, 1000);
+            result.CutawayLockoutMs = Integer(data, "cutaway_lockout_ms", 250, 0, 1000);
             result.MinDeployHeight = Number(data, "min_deploy_height", 3f, 0f, 50f);
             result.FallSpeed = Number(data, "fall_speed", 4f, 1f, 30f);
             result.FallSpeedForward = Number(data, "fall_speed_forward", 5.5f, 1f, 30f);
@@ -119,11 +119,15 @@ internal sealed class ParachuteConfig
         if (token == null || token.Type != JTokenType.String) return fallback;
         switch (token.ToString().Trim().ToLowerInvariant())
         {
-            case "double_tap_jump": return DeployInput.DoubleTapJump;
+            case "jump": return DeployInput.Jump;
+            case "double_tap_jump":
+                // The double-tap was replaced by a single press in 0.6.2.
+                Log.Out("[Parachute] deploy_input \"double_tap_jump\" is now a single Jump press; treating it as \"jump\".");
+                return DeployInput.Jump;
             case "key": return DeployInput.Key;
             case "both": return DeployInput.Both;
             default:
-                Log.Warning("[Parachute] Invalid " + key + " (double_tap_jump, key or both); using " + fallback);
+                Log.Warning("[Parachute] Invalid " + key + " (jump, key or both); using " + fallback);
                 return fallback;
         }
     }

@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 
 /// <summary>
-/// Lives on the local player entity. Owns input, the double-tap, the deploy /
+/// Lives on the local player entity. Owns input, the Jump press, the deploy /
 /// stow decisions and the per-step speed targets that the Harmony patches read
 /// back out of ParachuteState. Phase 1 is local-only.
 /// </summary>
@@ -11,9 +11,8 @@ internal sealed class ParachuteController : MonoBehaviour
     internal static ParachuteController Instance;
 
     private EntityPlayerLocal player;
-    private float lastTapTime = -1000f;
-    private bool lastTapAirborne;
     private Vector3 lastPosition;
+    private bool ropeWasAttached;
 
     internal static void Attach(EntityPlayerLocal entityPlayer)
     {
@@ -144,24 +143,25 @@ internal sealed class ParachuteController : MonoBehaviour
 
         PlayerActionsLocal input = player.playerInput;
         bool airborne = !Grounded();
-        bool doubleTapEnabled = config.DeployInput == DeployInput.DoubleTapJump || config.DeployInput == DeployInput.Both;
+        bool jumpEnabled = config.DeployInput == DeployInput.Jump || config.DeployInput == DeployInput.Both;
         bool keyEnabled = (config.DeployInput == DeployInput.Key || config.DeployInput == DeployInput.Both)
             && config.DeployKeyCode != KeyCode.None;
 
-        if (doubleTapEnabled && input != null && input.Jump != null && input.Jump.WasPressed)
+        // Jump also lets go of a grappling rope. That press belongs to the rope, or
+        // letting go would open the canopy at once. The rope detaches in the same
+        // frame as the press, before or after this runs, so a rope seen on the
+        // previous frame counts too.
+        bool ropeNow = ParachuteRope.Attached;
+        bool ropePress = ropeNow || ropeWasAttached;
+        ropeWasAttached = ropeNow;
+
+        if (jumpEnabled && input != null && input.Jump != null && input.Jump.WasPressed)
         {
-            bool doubleTap = airborne && lastTapAirborne && (Time.time - lastTapTime) <= config.DoubleTapWindowSeconds;
+            // One press in the air toggles the canopy. The press that starts a jump
+            // is made on the ground, so it never counts.
             if (config.Debug)
-                Log.Out("[Parachute] Jump tap: airborne=" + airborne + " previousAirborne=" + lastTapAirborne +
-                    " gap=" + (Time.time - lastTapTime).ToString("F2") + "s doubleTap=" + doubleTap);
-            lastTapTime = Time.time;
-            lastTapAirborne = airborne;
-            if (doubleTap)
-            {
-                lastTapTime = -1000f;
-                lastTapAirborne = false;
-                Toggle();
-            }
+                Log.Out("[Parachute] Jump press: airborne=" + airborne + " rope=" + ropePress);
+            if (airborne && !ropePress) Toggle();
         }
         if (keyEnabled && Input.GetKeyDown(config.DeployKeyCode)) Toggle();
 
@@ -219,6 +219,12 @@ internal sealed class ParachuteController : MonoBehaviour
         if (ParachuteState.Phase == ChutePhase.Stowed)
         {
             if (Time.time < ParachuteState.RedeployReadyTime) return;
+            // Without a harness every Jump press in the air lands here; say nothing.
+            if (!player.Buffs.HasBuff("buffParachuteHarness"))
+            {
+                if (ParachuteMod.Settings.Debug) Log.Out("[Parachute] Deploy refused: no harness (silent)");
+                return;
+            }
             string blocked = DeployBlockReason();
             if (blocked == null)
             {
@@ -230,6 +236,13 @@ internal sealed class ParachuteController : MonoBehaviour
         }
         else if (ParachuteState.IsActive && ParachuteMod.Settings.AllowCutaway)
         {
+            float lockoutEnds = ParachuteState.DeployedAt + ParachuteMod.Settings.CutawayLockoutSeconds;
+            if (Time.time < lockoutEnds)
+            {
+                if (ParachuteMod.Settings.Debug)
+                    Log.Out("[Parachute] Cutaway ignored: lockout (" + (lockoutEnds - Time.time).ToString("F2") + "s left)");
+                return;
+            }
             Stow("cutaway");
         }
     }
@@ -262,6 +275,7 @@ internal sealed class ParachuteController : MonoBehaviour
 
         ParachuteState.Phase = ChutePhase.Deploying;
         ParachuteState.PhaseStartTime = Time.time;
+        ParachuteState.DeployedAt = Time.time;
         ParachuteState.InitialFallSpeed = descent;
         ParachuteState.CurrentFallSpeed = descent;
         ParachuteState.CurrentGlideSpeed = 0f;

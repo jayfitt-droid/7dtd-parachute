@@ -18,6 +18,8 @@ internal static class ParachuteState
     internal static ChutePhase Phase = ChutePhase.Stowed;
     internal static EntityPlayerLocal Player;
     internal static float PhaseStartTime;
+    /// <summary>Time.time of the last deploy; starts the cutaway lockout.</summary>
+    internal static float DeployedAt;
     internal static float InitialFallSpeed;
     internal static float LandingGraceUntil;
     internal static float RedeployReadyTime;
@@ -37,6 +39,7 @@ internal static class ParachuteState
     {
         Phase = ChutePhase.Stowed;
         PhaseStartTime = 0f;
+        DeployedAt = 0f;
         InitialFallSpeed = 0f;
         LandingGraceUntil = 0f;
         RedeployReadyTime = 0f;

@@ -4,18 +4,18 @@
   // default shown in its comment and the game log says so. Speeds are m/s,
   // heights are meters, times are seconds unless the name says otherwise.
 
-  // How the canopy is deployed: "double_tap_jump", "key" or "both".
-  // Default: double_tap_jump
-  "deploy_input": "double_tap_jump",
+  // How the canopy is deployed: "jump" (one Jump press while in the air; the
+  // press that starts a jump never counts), "key" or "both". Default: jump
+  "deploy_input": "jump",
 
   // Optional direct key, a UnityEngine KeyCode name (for example "G"). Empty
   // turns it off. Avoid "F", which is the vanilla flashlight toggle.
   // Default: "" (off)
   "deploy_key": "",
 
-  // Longest gap between the two Jump taps that still counts as a double tap.
-  // Both taps must happen while airborne. Allowed: 150 to 1000. Default: 350
-  "double_tap_window_ms": 350,
+  // After the canopy opens, Jump cannot cut it away for this long, so a quick
+  // second press does not close it again. Allowed: 0 to 1000. Default: 250
+  "cutaway_lockout_ms": 250,
 
   // Clear air required below your feet before the canopy will open.
   // Allowed: 0 to 50. Default: 3.0
@@ -63,7 +63,7 @@
   // Default: 0.4
   "stow_anim_time": 0.4,
 
-  // true: double-tap Jump again while open to cut away. Default: true
+  // true: press Jump again while open to cut away. Default: true
   "allow_cutaway": true,
 
   // Minimum wait after stowing before another deploy, in milliseconds.

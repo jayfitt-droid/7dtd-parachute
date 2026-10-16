@@ -9,7 +9,7 @@
 
 ## 0. TL;DR
 
-A chest-armor mod item, **`modArmorParachute`**. With it installed in the chest piece ("outfit"), a player in the air **double-taps Jump** to deploy a steerable canopy:
+A chest-armor mod item, **`modArmorParachute`**. With it installed in the chest piece ("outfit"), a player in the air **presses Jump** to deploy a steerable canopy:
 
 - The canopy brakes the fall to a configurable **4 m/s** descent.
 - **Forward** speeds up slightly, **Back** flares (slower and shallower), **Left/Right** turn.
@@ -34,7 +34,7 @@ It is built as a C# DLL plus Harmony patches, following the same structure as Ja
 | R1 | Armor modification placed in a mod slot of the player's outfit | user |
 | R2 | **Chest armor only** (`installable_tags="armorChest"`). In v3.3 the "Outfit" items *are* the chest pieces (`EquipSlot=Chest`, tag `armorChest`) | user + [VERIFIED] items.xml |
 | R3 | Deploy only while off the ground and only with the mod equipped | user |
-| R4 | Deploy input = **double-tap Jump while airborne** (replaces the original "F", which conflicts with the vanilla flashlight toggle). The input is defined in the config file | user |
+| R4 | Deploy input = **one Jump press while airborne** (changed 2026-10-16 in 0.6.2 from a double-tap, to match the GliderSuit mod). Replaces the original "F", which conflicts with the vanilla flashlight toggle. The input is defined in the config file | user |
 | R5 | Default descent **4 m/s**, set in the config | user |
 | R6 | Forward = speed up slightly. Back = slow down / glide. Left/Right = **turn** (yaw), not strafe | user |
 | R7 | No fall damage when touching down with the canopy deployed | user |
@@ -48,8 +48,8 @@ It is built as a C# DLL plus Harmony patches, following the same structure as Ja
 
 ### Defaults chosen by the planner (confirm or change; see §12)
 - **Reusable:** the mod is not consumed and has no durability or repack time.
-- **Cutaway:** double-tapping Jump again while deployed stows the canopy (config `allow_cutaway`, default `true`).
-- **Minimum deploy height:** at least 3 m of clear air below the player (config). This stops a ground hop plus a double-tap from opening the chute at head height.
+- **Cutaway:** pressing Jump again while deployed stows the canopy (config `allow_cutaway`, default `true`).
+- **Minimum deploy height:** at least 3 m of clear air below the player (config). This stops a press during an ordinary hop from opening the chute at head height.
 - **No quality tiers:** like Impact Bracing, the mod has no quality levels, and steering stats come only from the config.
 - **Auto-stow** on landing, entering water, grabbing a ladder, mounting a vehicle, death, teleport/respawn, god or fly mode, or losing the mod/armor.
 
@@ -97,7 +97,7 @@ It is built as a C# DLL plus Harmony patches, following the same structure as Ja
 ### 3.3 Input
 - `PlayerActionsLocal` has `Jump`, `MoveForward`, `MoveBack`, `MoveLeft`, `MoveRight`, `Move` (two-axis), `Crouch`, `ToggleFlashlight` (InControl `PlayerAction`) [VERIFIED].
 - The local player's actions are at `EntityPlayerLocal.playerInput` (`PlatformManager.NativePlatform.Input.PrimaryPlayer`) [VERIFIED ~L565]. Use `.WasPressed` / `.IsPressed`, and read them in **`Update`** (per frame), not `FixedUpdate`, so taps aren't missed.
-- The default F key = `ToggleFlashlight`, hence the switch to double-tap Jump.
+- The default F key = `ToggleFlashlight`, hence the switch to Jump.
 - Jump in the air (when not jet-packing) only does vanilla things: re-enables the controller, ladder air-attach. No conflict [VERIFIED `EntityPlayerLocal.cs` ~L2690–2705].
 - Precedent for turning the player from code: `EntityVehicle.cs` ~L1244 does `attachedPlayerLocal.vp_FPCamera.Yaw += delta` [VERIFIED].
 
@@ -148,7 +148,7 @@ C:\Users\Jason\Projects\7d2d\Parachute\   ← source repo root
 │  ├─ ParachuteMod.cs                        (IModApi entry; Harmony PatchAll; ModEvents hooks)
 │  ├─ ParachuteConfig.cs                     (JSON-with-comments loader, defaults, clamping, reload)
 │  ├─ ParachuteState.cs                      (per-local-player state machine; single source of truth)
-│  ├─ ParachuteController.cs                 (MonoBehaviour on local player: input, double-tap, auto-stow, audio)
+│  ├─ ParachuteController.cs                 (MonoBehaviour on local player: input, Jump press, auto-stow, audio)
 │  ├─ ParachuteFlight.cs                     (pure math: target velocities, yaw rate; unit-testable)
 │  ├─ ParachuteVisual.cs                     (canopy instantiate/animate/destroy; bank & sway)
 │  ├─ ParachuteAssets.cs                     (bundle loading + caching + fallbacks)
@@ -205,10 +205,10 @@ C:\Users\Jason\Projects\7d2d\Parachute\   ← source repo root
 ### 5.1 State machine (`ParachuteState`, local player)
 
 ```
-           double-tap Jump & CanDeploy()                 deploy anim done (deploy_time)
+           Jump (airborne) & CanDeploy()                 deploy anim done (deploy_time)
  Stowed ───────────────────────────────▶ Deploying ─────────────────────────────▶ Open
    ▲                                         │                                     │
-   │  landed / water / ladder / vehicle /    │ (same auto-stow triggers)           │ double-tap Jump & allow_cutaway
+   │  landed / water / ladder / vehicle /    │ (same auto-stow triggers)           │ Jump & allow_cutaway & lockout over
    │  death / respawn / mod removed / fly    ▼                                     ▼
    └────────────── Stowing (collapse anim, stow_anim_time) ◀───────────────────────┘
 ```
@@ -221,7 +221,7 @@ C:\Users\Jason\Projects\7d2d\Parachute\   ← source repo root
 5. No modal or cursor UI open (`playerUI.windowManager.IsModalWindowOpen()` / `IsCursorWindowOpen()` / chat input active).
 6. Not in the stow cooldown (`redeploy_cooldown_ms`, default 300 ms after a stow).
 
-**Double-tap detection:** in `Update()`, on `playerInput.Jump.WasPressed`, if the previous press was ≤ `double_tap_window_ms` ago **and both presses happened while airborne**, fire a toggle and clear the timestamp. Otherwise store the timestamp. A ground jump plus one air tap therefore never deploys.
+**Jump press** (changed 2026-10-16 in 0.6.2 from a double-tap, to match the GliderSuit mod): in `Update()`, on `playerInput.Jump.WasPressed` while airborne, toggle. The press that starts a jump is made on the ground, so it never counts. Ignored: a press while a Grappling Hook rope is attached, or was on the previous frame (`ParachuteRope`, reading the `GrapplingHook.Attached` AppDomain value), and a cutaway press within `cutaway_lockout_ms` of deploying. Without the harness the press is refused silently, since every airborne Jump press reaches it.
 
 **Optional direct key:** if config `deploy_key` is a valid `UnityEngine.KeyCode` name (e.g. `"G"`), `Input.GetKeyDown` on it also toggles. Empty string (default) = disabled.
 
@@ -372,7 +372,7 @@ Optional (off by default, mention in the changelog): add to trader stock for tie
 ```
 Key,File,Type,UsedInMainMenu,NoTranslate,english
 modArmorParachute,item_modifiers,mod,,,Parachute Mod
-modArmorParachuteDesc,item_modifiers,mod,,,"A packed, steerable canopy stitched into a harness for chest armor.\n\nWhile falling, double-tap Jump to deploy. Hold Forward to dive a little faster, hold Back to flare and glide, and use Left and Right to slide sideways. You take no fall damage while the canopy is open.\n\nDouble-tap Jump again to cut away."
+modArmorParachuteDesc,item_modifiers,mod,,,"A packed, steerable canopy stitched into a harness for chest armor.\n\nWhile falling, press Jump to deploy. Hold Forward to dive a little faster, hold Back to flare and glide, and use Left and Right to slide sideways. You take no fall damage while the canopy is open.\n\nPress Jump again to cut away."
 modArmorParachuteSchematic,item_modifiers,mod,,,Parachute Mod Schematic
 ```
 Make the description text match the actual config behavior (cutaway on/off). Re-check it after tuning.
@@ -401,9 +401,9 @@ Load with `Newtonsoft.Json` using `JsonTextReader` + `JsonLoadSettings { Comment
 
 | Key | Default | Range | Meaning |
 |---|---|---|---|
-| `deploy_input` | `"double_tap_jump"` | `double_tap_jump` \| `key` \| `both` | how to deploy |
+| `deploy_input` | `"jump"` | `jump` \| `key` \| `both` | how to deploy (`double_tap_jump` is read as `jump`) |
 | `deploy_key` | `""` | Unity `KeyCode` name or empty | optional direct key (empty = off; avoid `F`, the flashlight key) |
-| `double_tap_window_ms` | 350 | 150–1000 | max gap between the two Jump taps |
+| `cutaway_lockout_ms` | 250 | 0–1000 | after deploying, Jump cannot cut away for this long |
 | `min_deploy_height` | 3.0 | 0–50 | clear air (m) below the feet required to deploy |
 | `fall_speed` | **4.0** | 1–30 | neutral descent, m/s |
 | `fall_speed_forward` | 5.5 | 1–30 | descent while holding Forward |
@@ -415,7 +415,7 @@ Load with `Newtonsoft.Json` using `JsonTextReader` + `JsonLoadSettings { Comment
 | `control_response` | 6.0 | 0.5–50 | m/s² smoothing toward target speeds |
 | `deploy_time` | 0.8 | 0.1–3 | seconds to brake to `fall_speed` and finish the open animation |
 | `stow_anim_time` | 0.4 | 0.05–2 | canopy collapse animation time |
-| `allow_cutaway` | true | bool | double-tap again while open to stow |
+| `allow_cutaway` | true | bool | press Jump again while open to stow |
 | `redeploy_cooldown_ms` | 300 | 0–5000 | after stowing |
 | `landing_grace_ms` | 500 | 0–3000 | fall-damage immunity after touchdown |
 | `canopy_scale` | 1.0 | 0.25–3 | visual size multiplier |
@@ -563,13 +563,13 @@ Item creation: `new ItemValue(ItemClass.GetItem(name).type, q, q, false)` then `
 - **Accept:** an invalid value logs a warning and falls back. Reload changes behavior live.
 
 ### Phase 4: deploy logic & flight
-- [x] `ParachuteController` (input, double-tap, CanDeploy, auto-stow), `ParachuteState`, `ParachuteFlight`.
+- [x] `ParachuteController` (input, Jump press, CanDeploy, auto-stow), `ParachuteState`, `ParachuteFlight`.
 - [x] Harmony patches §5.3.
 - **Accept** (use `chute debug on`, which shows descent m/s):
   - Steady descent reads **8.0 ± 0.3 m/s** neutral, about 9 with Forward, about 5.5 with Back.
   - Glide speeds match the config.
   - A/D yaws the player at about `turn_rate`.
-  - A ground hop plus double-tap doesn't deploy. A double-tap in the air above `min_deploy_height` does.
+  - A press during an ordinary hop doesn't deploy. A press in the air above `min_deploy_height` does.
   - Cutaway works. Auto-stow works on water, ladder and landing.
 
 ### Phase 5: fall-damage immunity
@@ -606,9 +606,9 @@ Item creation: `new ItemValue(ItemClass.GetItem(name).type, q, q, false)` then `
 | # | Scenario | Expected |
 |---|---|---|
 | T1 | Mod in head/hands/feet armor | Cannot install |
-| T2 | Mod in chest outfit, on ground, double-tap Jump | Normal double jump; no deploy |
-| T3 | Step off a 2 m ledge, double-tap | No deploy (below `min_deploy_height`) |
-| T4 | `chute up 80`, double-tap after 1 s | Deploy sound; canopy opens; brakes to 4 m/s in ~0.8 s |
+| T2 | Mod in chest outfit, standing jump, press Jump again at the top | No deploy (below `min_deploy_height`); the ground press never counts |
+| T3 | Step off a 2 m ledge, press Jump | No deploy (below `min_deploy_height`) |
+| T4 | `chute up 80`, press Jump after 1 s | Deploy sound; canopy opens; brakes to 4 m/s in ~0.8 s |
 | T5 | Hold W / S / A / D under canopy | Faster dive / flare / yaw left / yaw right |
 | T6 | Land on flat ground, on a block edge, on a steep slope, on a vehicle roof | 0 damage, no injury buffs; canopy collapses |
 | T7 | Deploy ~4 m above ground while still braking | 0 damage (grace + MaxHeight reset) |
@@ -617,7 +617,7 @@ Item creation: `new ItemValue(ItemClass.GetItem(name).type, q, q, false)` then `
 | T10 | Grab a ladder under canopy | Auto-stow |
 | T11 | Remove the chest armor / mod mid-air | Auto-stow; vanilla fall rules from that height |
 | T12 | Die in air / respawn / teleport with canopy open | Canopy and loop cleaned up; no stuck state |
-| T13 | Inventory open while falling, double-tap | No deploy |
+| T13 | Inventory open while falling, press Jump | No deploy |
 | T14 | `chute reload` after changing `fall_speed` to 6 | New speed applies immediately |
 | T15 | Coexist with GrapplingHook: grapple while under canopy | No auto-stow: the canopy stays open while grappling and the two mods interact freely. No exceptions; no stuck state after release |
 | T19 | Visit traders at mid trader stage over several restocks | Mod sometimes in stock at 2500 (before bartering perks); schematic sometimes in stock. **Untested as of v0.6.0, see the note below** |
@@ -642,7 +642,7 @@ Item creation: `new ItemValue(ItemClass.GetItem(name).type, q, q, false)` then `
 | Bundle shader incompatibility | §5.14 fallback shader. Test early in Phase 6 with a cube before modelling |
 | Sound bundle path in XML not resolved | C# playback fallback (§5.11) |
 | `ParachuteWearing` vanilla flag misunderstood | Not used for logic (§3.4) |
-| Double-tap conflicts with other mods using air-jump | Config `deploy_input = key` with `deploy_key` |
+| Jump in the air conflicts with other mods using air-jump | Config `deploy_input = key` with `deploy_key` |
 | `m_SpeedModifier` ≈ 0 (encumbrance/stun) causes a divide-by-small | Clamp ≥ 0.01, and cap the throttle magnitude |
 
 ---
@@ -656,7 +656,7 @@ Item creation: `new ItemValue(ItemClass.GetItem(name).type, q, q, false)` then `
 
 ## 12. Open questions for Jason (answer before or during Phase 7)
 1. **Reusable vs consumable:** ~~keep it reusable forever (current plan), or consume it / add durability / a repack cooldown?~~ **Decided: reusable forever.**
-2. **Cutaway:** keep "double-tap again = cut away", or only auto-stow on landing?
+2. **Cutaway:** keep "press Jump again = cut away", or only auto-stow on landing?
 3. **Recipe balance:** ~~OK with 80 cloth, 10 leather, 3 duct tape, 1 sewing kit, 4 mechanical parts at the workbench?~~ **Decided: yes.**
 4. **Trader stock:** ~~also sell the mod/schematic at traders (`modsTier2`), or loot only?~~ **Decided: traders randomly stock it, mod priced at 2500 (`Config/traders.xml`, EconomicValue 833.34). Not yet tested in game; needs a long playthrough (see T19).**
 5. **GrapplingHook interaction:** ~~auto-stow when a grapple attaches?~~ **Decided: no auto-stow. The canopy stays open while grappling; the two mods do not know about each other.**
@@ -671,7 +671,7 @@ Item creation: `new ItemValue(ItemClass.GetItem(name).type, q, q, false)` then `
 |---|---|---|
 | G1 | **Open canopy acts like a held Forward key on the rope.** `Patch_vpFPController.ThrottlePostfix` writes the glide into `m_MotorThrottle` every step; `Grapple.BeforeMove` reads `m_MotorThrottle` as swing input. Result: a constant 6 m/s² push in the facing direction and a quarter of the usual swing damping, so a swing can be pumped to the grapple's 30 m/s cap with no keys held. Fun "sail", or an exploit | **GrapplingHook** (preferred): ignore the throttle as input while the player has `buffParachuteDeployed`. No dependency between the mods |
 | G2 | **No canopy braking on the rope.** The grapple integrates its own velocity from `m_GravityForce` and zeroes `m_FallSpeed`, so the descent limit is discarded while attached | **GrapplingHook** only: add drag while `buffParachuteDeployed` is present |
-| G3 | **Jump does two jobs.** Jump releases the rope; double-tap Jump toggles the canopy. A double-tap to let go with the canopy open also cuts away. The canopy cannot be opened while staying on the rope (first tap releases); firing the grapple while already under canopy works. Release-and-deploy in one double-tap works | Either: a separate release key in GrapplingHook, or `deploy_input = key` here (already exists). Possibly nothing |
+| G3 | **Jump does two jobs.** Jump releases the rope; one airborne Jump press toggles the canopy. **Resolved in 0.6.2:** the rope-release press is ignored (`ParachuteRope`, the same signal GliderSuit reads), so letting go neither opens nor cuts away the canopy; press again after letting go to open it. The canopy cannot be opened while staying on the rope; firing the grapple while already under canopy works | Done |
 | G4 | **Swing momentum is lost under canopy.** `Grapple.Detach` hands momentum to the controller, then `ThrottlePostfix` overwrites x/z with the glide speed on the next step. Upward speed is kept. The same snap happens on any deploy while moving fast, grapple or not | **Parachute** only: start `CurrentGlideSpeed`/strafe from the controller's current horizontal velocity and approach the target, instead of overwriting |
 | G5 | **No fall damage on any landing with the canopy open**, including off a fast swing. Existing parachute rule, now easier to reach | Parachute, if it should ever depend on speed |
 | G6 | **Looks:** the canopy stays inflated directly overhead when hanging still, and has no collision, so it clips through the anchor block or an overhang | Parachute visual, cosmetic |

@@ -2,6 +2,17 @@
 
 All notable changes to the Parachute mod. Versions match the Git tags and the version in `Mod\Parachute\ModInfo.xml`.
 
+## 0.6.2 - 2026-10-16
+
+### Changed
+- One Jump press in the air now opens the canopy, as in the Glider Suit mod, instead of a double-tap. The press that starts a jump from the ground never counts. Pressing Jump again cuts the canopy away.
+- `deploy_input` is now `jump`, `key` or `both`. The old value `double_tap_jump` still works and is read as `jump`.
+- `double_tap_window_ms` is gone. New `cutaway_lockout_ms` (250): for that long after opening, Jump does not cut the canopy away.
+
+### Fixed
+- The Jump press that lets go of a Grappling Hook rope no longer opens or cuts away the canopy.
+- Pressing Jump in the air without the mod installed no longer logs a refusal.
+
 ## 0.6.1 - 2026-10-12
 
 ### Added
