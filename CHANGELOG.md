@@ -2,6 +2,16 @@
 
 All notable changes to the Parachute mod. Versions match the Git tags and the version in `Mod\Parachute\ModInfo.xml`.
 
+## 0.6.3 - 2026-10-16
+
+### Added
+- The camera switches to third person 0.5 s after the canopy opens, as in the Glider Suit mod, and goes back to the view last chosen with the view key when the canopy stows. A view picked with the view key while the canopy is open is kept. Skipped if the world restricts the camera. New settings `auto_third_person` (true) and `third_person_after_ms` (500).
+- A vehicle-style camera in third person under the canopy, as in the Glider Suit mod: centred behind you, 4 to 6 m back depending on forward speed. Aiming keeps the game's own view. New settings `chase_camera` (true), `chase_camera_height` (1.8), `chase_camera_distance_min` (4) and `chase_camera_distance_max` (6).
+
+### Fixed
+- In third person under the canopy the character no longer turns to face sideways or back at the camera when strafing or flaring; it faces where the camera looks, and the canopy glides that way. `left_right` `turn` mode now turns the view in third person too.
+- Aiming down sights while the canopy stowed left the zoom stuck on. The switch back to first person, and the switch to third person after opening, now wait until you stop aiming.
+
 ## 0.6.2 - 2026-10-16
 
 ### Changed

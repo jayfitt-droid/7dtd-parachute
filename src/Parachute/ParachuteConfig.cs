@@ -28,6 +28,12 @@ internal sealed class ParachuteConfig
     public string DeployKey = "";
     public KeyCode DeployKeyCode = KeyCode.None;
     public int CutawayLockoutMs = 250;
+    public bool AutoThirdPerson = true;
+    public int ThirdPersonAfterMs = 500;
+    public bool ChaseCamera = true;
+    public float ChaseCameraHeight = 1.8f;
+    public float ChaseCameraDistanceMin = 4f;
+    public float ChaseCameraDistanceMax = 6f;
     public float MinDeployHeight = 3f;
     public float FallSpeed = 4f;
     public float FallSpeedForward = 5.5f;
@@ -51,6 +57,7 @@ internal sealed class ParachuteConfig
     public bool Debug;
 
     public float CutawayLockoutSeconds => CutawayLockoutMs / 1000f;
+    public float ThirdPersonAfterSeconds => ThirdPersonAfterMs / 1000f;
     public float RedeployCooldownSeconds => RedeployCooldownMs / 1000f;
     public float LandingGraceSeconds => LandingGraceMs / 1000f;
 
@@ -70,6 +77,12 @@ internal sealed class ParachuteConfig
             result.DeployKey = Text(data, "deploy_key", "");
             result.DeployKeyCode = ParseKey(result.DeployKey);
             result.CutawayLockoutMs = Integer(data, "cutaway_lockout_ms", 250, 0, 1000);
+            result.AutoThirdPerson = Boolean(data, "auto_third_person", true);
+            result.ThirdPersonAfterMs = Integer(data, "third_person_after_ms", 500, 0, 10000);
+            result.ChaseCamera = Boolean(data, "chase_camera", true);
+            result.ChaseCameraHeight = Number(data, "chase_camera_height", 1.8f, 0f, 5f);
+            result.ChaseCameraDistanceMin = Number(data, "chase_camera_distance_min", 4f, 1f, 20f);
+            result.ChaseCameraDistanceMax = Number(data, "chase_camera_distance_max", 6f, 1f, 20f);
             result.MinDeployHeight = Number(data, "min_deploy_height", 3f, 0f, 50f);
             result.FallSpeed = Number(data, "fall_speed", 4f, 1f, 30f);
             result.FallSpeedForward = Number(data, "fall_speed_forward", 5.5f, 1f, 30f);

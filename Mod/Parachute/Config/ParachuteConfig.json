@@ -17,6 +17,33 @@
   // second press does not close it again. Allowed: 0 to 1000. Default: 250
   "cutaway_lockout_ms": 250,
 
+  // true: switch to third person under the canopy, and back to the view you
+  // last chose with the view key when it stows. false: stay in whichever view
+  // you are in. Pressing the view key while the canopy is open is never
+  // overridden. Default: true
+  "auto_third_person": true,
+
+  // How long after the canopy opens the switch to third person happens, in
+  // milliseconds; 0 is at once. Allowed: 0 to 10000. Default: 500
+  "third_person_after_ms": 500,
+
+  // true: in third person under the canopy, use a vehicle-style camera,
+  // centred behind you and further back. false: the game's over-the-shoulder
+  // view. While aiming, the game's own view is kept. Default: true
+  "chase_camera": true,
+
+  // Height above your feet that the chase camera looks at, in meters (vehicles
+  // use 1.8). Allowed: 0 to 5. Default: 1.8
+  "chase_camera_height": 1.8,
+
+  // Chase camera distance behind you when hanging still, in meters.
+  // Allowed: 1 to 20. Default: 4
+  "chase_camera_distance_min": 4,
+
+  // Chase camera distance at glide_speed_forward, in meters; it is blended
+  // between the two by your forward speed. Allowed: 1 to 20. Default: 6
+  "chase_camera_distance_max": 6,
+
   // Clear air required below your feet before the canopy will open.
   // Allowed: 0 to 50. Default: 3.0
   "min_deploy_height": 3.0,
@@ -90,5 +117,5 @@
   "flutter_pitch": 0.7,
 
   // Verbose logging and an on-screen readout. Default: false
-  "debug": false
+  "debug": true
 }

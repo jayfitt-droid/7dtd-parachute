@@ -38,6 +38,8 @@ The parachute uses the game's jump and movement actions, so it follows whatever 
 - The canopy stows by itself when you land, enter water, grab a ladder, get in a vehicle, switch to fly or god mode, remove the chest armor or the mod, die or teleport.
 - After a cutaway you fall normally from that point and take normal fall damage.
 - You can keep a weapon or tool in hand and use it under the canopy.
+- Half a second after the canopy opens, the camera switches to third person, the way it does when you get into a vehicle. When the canopy stows it goes back to the view you last chose with the view key. If you change the view yourself while the canopy is open, that choice is kept. Turn this off with `auto_third_person`.
+- In third person under the canopy the camera sits behind you like a vehicle camera, further back the faster you glide, and your character keeps facing where the camera looks while you slide sideways or flare. Aiming still uses the game's close over-the-shoulder view. Turn the vehicle-style camera off with `chase_camera`.
 - The canopy, its lines and the two riser straps on your shoulders are visible in first person (look up) and in third person.
 
 ## Configuration
@@ -49,6 +51,12 @@ Edit `Mods\Parachute\Config\ParachuteConfig.json`, then restart the game or run 
 | `deploy_input` | `jump` | How the canopy is opened: `jump`, `key` or `both` |
 | `deploy_key` | (off) | An optional dedicated key, as a Unity key name such as `G` |
 | `cutaway_lockout_ms` | 250 | After opening, how long Jump cannot cut the canopy away |
+| `auto_third_person` | true | Switch to third person under the canopy and back when it stows |
+| `third_person_after_ms` | 500 | How long after opening the switch happens; 0 is at once |
+| `chase_camera` | true | Vehicle-style camera in third person under the canopy |
+| `chase_camera_height` | 1.8 | Height above your feet the chase camera looks at |
+| `chase_camera_distance_min` | 4 | Chase camera distance when hanging still |
+| `chase_camera_distance_max` | 6 | Chase camera distance at full forward speed |
 | `min_deploy_height` | 3.0 | Clear air needed below your feet, in meters |
 | `fall_speed` | 4.0 | Descent with no input |
 | `fall_speed_forward` | 5.5 | Descent while holding Forward |

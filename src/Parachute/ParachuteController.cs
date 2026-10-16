@@ -13,6 +13,12 @@ internal sealed class ParachuteController : MonoBehaviour
     private EntityPlayerLocal player;
     private Vector3 lastPosition;
     private bool ropeWasAttached;
+    // This controller put the camera in third person, so stowing puts it back. It
+    // stays set after a stow until the switch back has actually happened.
+    private bool switchedToThirdPerson;
+    // The view is decided once per deploy, when the delay runs out, so a view the
+    // player picks after that is never overridden.
+    private bool viewDecided;
 
     internal static void Attach(EntityPlayerLocal entityPlayer)
     {
@@ -117,6 +123,8 @@ internal sealed class ParachuteController : MonoBehaviour
         if (player.IsDead() || GameManager.Instance == null || GameManager.Instance.World == null)
         {
             if (ParachuteState.IsActive) Stow("gone");
+            // The death camera and the respawn set the view themselves.
+            if (player.IsDead()) switchedToThirdPerson = false;
             return;
         }
 
@@ -134,6 +142,9 @@ internal sealed class ParachuteController : MonoBehaviour
             string reason = AutoStowReason();
             if (reason != null) Stow(reason);
         }
+
+        // A switch back that had to wait for the player to stop aiming.
+        if (!ParachuteState.IsActive && switchedToThirdPerson) RestoreView();
 
         // Keep buffParachuteDeployed present while active and through the landing grace.
         bool wantBuff = ParachuteState.IsActive || ParachuteState.InGrace;
@@ -167,12 +178,13 @@ internal sealed class ParachuteController : MonoBehaviour
 
         if (ParachuteState.IsActive)
         {
+            AutoThirdPerson(config);
             ParachuteFlight.ReadInput(input, out bool forward, out bool back, out float turn);
             ParachuteState.LastForward = forward;
             ParachuteState.LastBack = back;
             ParachuteState.LastTurn = turn;
-            if (config.LeftRight == LeftRightMode.Turn && Mathf.Abs(turn) > 0.01f && player.vp_FPCamera != null)
-                player.vp_FPCamera.Yaw += config.TurnRate * Time.deltaTime * turn;
+            if (config.LeftRight == LeftRightMode.Turn && Mathf.Abs(turn) > 0.01f)
+                ParachuteFlight.TurnLook(player, config.TurnRate * Time.deltaTime * turn);
         }
     }
 
@@ -276,6 +288,7 @@ internal sealed class ParachuteController : MonoBehaviour
         ParachuteState.Phase = ChutePhase.Deploying;
         ParachuteState.PhaseStartTime = Time.time;
         ParachuteState.DeployedAt = Time.time;
+        viewDecided = false;
         ParachuteState.InitialFallSpeed = descent;
         ParachuteState.CurrentFallSpeed = descent;
         ParachuteState.CurrentGlideSpeed = 0f;
@@ -299,9 +312,72 @@ internal sealed class ParachuteController : MonoBehaviour
         ParachuteState.PhaseStartTime = Time.time;
         ParachuteState.LastStowReason = reason;
         SyncFallAnimation();
+        RestoreView();
         ParachuteVisual.Stow(config);
         ParachuteAudio.StopFlutter(player);
         if (config.Debug) Log.Out("[Parachute] Stowing: " + reason);
+    }
+
+    /// <summary>
+    /// After third_person_after_ms under the canopy, switch to third person the way
+    /// the game does when a player gets into a vehicle (as in the GliderSuit mod).
+    /// Nothing happens if the player is already in third person or the world
+    /// restricts the camera. While the player is aiming it waits until they stop.
+    /// </summary>
+    private void AutoThirdPerson(ParachuteConfig config)
+    {
+        if (viewDecided || !config.AutoThirdPerson) return;
+        if (Time.time - ParachuteState.DeployedAt < config.ThirdPersonAfterSeconds) return;
+        if (ViewSwitchBlocked()) return;
+        viewDecided = true;
+        if (!player.bFirstPersonView) return;
+        if (player.vp_FPCamera == null || player.vp_FPCamera.Locked3rdPerson) return;
+        if (GameStats.GetInt(EnumGameStats.CameraRestrictionMode) != 0) return;
+        player.SetFirstPersonView(false, true);
+        switchedToThirdPerson = true;
+        if (config.Debug) Log.Out("[Parachute] View: third person under the canopy.");
+    }
+
+    /// <summary>
+    /// Back to the view the player last chose with the view key (the game's own
+    /// preference, as when leaving a vehicle). Not while dead: the death camera and
+    /// the respawn set the view themselves. While the player is aiming it waits:
+    /// Tick calls this again every frame until the switch happens.
+    /// </summary>
+    private bool restoreWaitLogged;
+
+    /// <summary>
+    /// Changing the view while aiming swaps the weapon between its first- and
+    /// third-person models mid-zoom and leaves the zoom stuck on after the player
+    /// lets go. The game avoids it too: its view key does nothing while an item
+    /// action runs, and a vehicle clears AimingGun before its camera takes over.
+    /// </summary>
+    private bool ViewSwitchBlocked()
+    {
+        if (player.AimingGun) return true;
+        return player.inventory != null && player.inventory.IsHoldingItemActionRunning();
+    }
+
+    private void RestoreView()
+    {
+        if (!switchedToThirdPerson) return;
+        if (player.IsDead())
+        {
+            switchedToThirdPerson = false;
+            return;
+        }
+        if (ViewSwitchBlocked())
+        {
+            if (ParachuteMod.Settings.Debug && !restoreWaitLogged)
+                Log.Out("[Parachute] View: switch back waits until you stop aiming.");
+            restoreWaitLogged = true;
+            return;
+        }
+        switchedToThirdPerson = false;
+        restoreWaitLogged = false;
+        player.SwitchToPreferredCameraMode(true);
+        if (ParachuteMod.Settings.Debug)
+            Log.Out("[Parachute] View: back to " + (player.bFirstPersonView ? "first" : "third") + " person.");
     }
 
     /// <summary>

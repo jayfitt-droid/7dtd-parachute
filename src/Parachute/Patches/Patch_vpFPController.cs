@@ -14,10 +14,23 @@ internal static class Patch_vpFPController
     {
         if (!IsLocalActive(__instance)) return;
 
-        Vector3 direction = __instance.Transform.forward;
-        direction.y = 0f;
-        if (direction.sqrMagnitude < 1e-6f) return;
-        direction.Normalize();
+        // First person: the body faces the view. Third person: the body turns
+        // toward the view over a moment (Patch_Camera), so fly where the camera
+        // looks instead of where the body happens to face.
+        Vector3 direction;
+        EntityPlayerLocal local = __instance.localPlayer;
+        if (local.bFirstPersonView)
+        {
+            direction = __instance.Transform.forward;
+            direction.y = 0f;
+            if (direction.sqrMagnitude < 1e-6f) return;
+            direction.Normalize();
+        }
+        else
+        {
+            float yaw = ParachuteFlight.LookYaw(local, __instance.Transform.eulerAngles.y) * Mathf.Deg2Rad;
+            direction = new Vector3(Mathf.Sin(yaw), 0f, Mathf.Cos(yaw));
+        }
 
         // FixedMove multiplies x/z by m_SpeedModifier, so divide it back out.
         float speedModifier = Mathf.Max(0.01f, __instance.m_SpeedModifier);

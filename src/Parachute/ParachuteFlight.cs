@@ -78,4 +78,27 @@ internal static class ParachuteFlight
         t -= 1f;
         return t * t * ((overshoot + 1f) * t + overshoot) + 1f;
     }
+
+    /// <summary>
+    /// The compass direction the player is looking, in degrees. First person keeps
+    /// it in the camera's Yaw. Third person does not: there the camera orbits the
+    /// character on yaw3P, which is the direction from the character back to the
+    /// camera, half a turn round from the view (vp_FPCamera sets Yaw = yaw3P - 180
+    /// when it switches back). Ported from the GliderSuit mod.
+    /// </summary>
+    internal static float LookYaw(EntityPlayerLocal player, float fallback)
+    {
+        vp_FPCamera camera = player != null ? player.vp_FPCamera : null;
+        if (camera == null) return fallback;
+        return player.bFirstPersonView ? camera.Yaw : camera.yaw3P - 180f;
+    }
+
+    /// <summary>Turns the view by this many degrees, in whichever of the two the current view uses.</summary>
+    internal static void TurnLook(EntityPlayerLocal player, float degrees)
+    {
+        vp_FPCamera camera = player != null ? player.vp_FPCamera : null;
+        if (camera == null) return;
+        if (player.bFirstPersonView) camera.Yaw += degrees;
+        else camera.yaw3P += degrees;
+    }
 }
