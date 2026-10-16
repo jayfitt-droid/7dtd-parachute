@@ -2,7 +2,7 @@
 
 > **Audience:** any engineer or AI model picking this up cold. Read §0–§3 first and skip nothing in §3 ("Verified engine facts"). Every claim tagged **[VERIFIED]** was read directly from the v3.3 decompiled source or game XML. **[VERIFY]** means "plausible, confirm before relying on it". Work the phases in §8 in order; each one has acceptance criteria.
 >
-> **Status:** planning only. No code has been written.
+> **Status (2026-10-16):** v0.6.1. Phases 0–6 are done (shipped in 0.4.0–0.6.1, see `CHANGELOG.md`). Phase 7 is partly done; Phases 8 and 9 (v1.0) are not started.
 > **Author/owner:** Jason. Plan date: 2026-10-12.
 
 ---
@@ -540,13 +540,13 @@ Item creation: `new ItemValue(ItemClass.GetItem(name).type, q, q, false)` then `
 ## 8. Phased task list (do in order; each phase ends green before the next)
 
 ### Phase 0: scaffolding
-- [ ] Create the repo layout from §4. Add `.gitignore` (bin/obj, Unity Library/Temp/Logs).
-- [ ] csproj builds an empty `IModApi` that logs `[Parachute] Loaded`.
-- [ ] `ModInfo.xml`, deploy script.
+- [x] Create the repo layout from §4. Add `.gitignore` (bin/obj, Unity Library/Temp/Logs).
+- [x] csproj builds an empty `IModApi` that logs `[Parachute] Loaded`.
+- [x] `ModInfo.xml`, deploy script.
 - **Accept:** game starts, the log shows `[Parachute] Loaded`, no errors.
 
 ### Phase 1: XML content (no C# behavior yet)
-- [ ] `item_modifiers.xml`, `items.xml`, `recipes.xml`, `loot.xml`, `buffs.xml` (both buffs + the §5.4 guard), `Localization.csv`, placeholder icon PNG.
+- [x] `item_modifiers.xml`, `items.xml`, `recipes.xml`, `loot.xml`, `buffs.xml` (both buffs + the §5.4 guard), `Localization.csv`, placeholder icon PNG.
 - **Accept:**
   - The creative menu shows the mod and the schematic, with correct names and descriptions.
   - The mod fits **only** chest armor.
@@ -555,16 +555,16 @@ Item creation: `new ItemValue(ItemClass.GetItem(name).type, q, q, false)` then `
   - The log has no XPath "0 matches" warnings.
 
 ### Phase 2: console commands
-- [ ] Implement §5.15 (`give`, `outfit`, `mod`, `schematic`, `kit`, `up`, `status`, `reload`, `debug`).
+- [x] Implement §5.15 (`give`, `outfit`, `mod`, `schematic`, `kit`, `up`, `status`, `reload`, `debug`).
 - **Accept:** each command adds the right items. The outfit is Q6 with free slots. `chute kit` arrives with the mod installed. `chute up 80` lifts the player 80 m.
 
 ### Phase 3: config
-- [ ] `ParachuteConfig` with defaults, ranges, comments in the shipped file, `chute reload`.
+- [x] `ParachuteConfig` with defaults, ranges, comments in the shipped file, `chute reload`.
 - **Accept:** an invalid value logs a warning and falls back. Reload changes behavior live.
 
 ### Phase 4: deploy logic & flight
-- [ ] `ParachuteController` (input, double-tap, CanDeploy, auto-stow), `ParachuteState`, `ParachuteFlight`.
-- [ ] Harmony patches §5.3.
+- [x] `ParachuteController` (input, double-tap, CanDeploy, auto-stow), `ParachuteState`, `ParachuteFlight`.
+- [x] Harmony patches §5.3.
 - **Accept** (use `chute debug on`, which shows descent m/s):
   - Steady descent reads **8.0 ± 0.3 m/s** neutral, about 9 with Forward, about 5.5 with Back.
   - Glide speeds match the config.
@@ -573,16 +573,16 @@ Item creation: `new ItemValue(ItemClass.GetItem(name).type, q, q, false)` then `
   - Cutaway works. Auto-stow works on water, ladder and landing.
 
 ### Phase 5: fall-damage immunity
-- [ ] Patches §5.4 (prefix FallImpact, fallHitGround safety net, grace window, deployed buff).
+- [x] Patches §5.4 (prefix FallImpact, fallHitGround safety net, grace window, deployed buff).
 - **Accept:**
   - From `chute up 100`: falling without the chute = vanilla damage or death. Deploying at any height (including 3–5 m above ground, mid-brake) = **0 damage**, no leg injury buffs.
   - Cutting away at 20 m = normal fall damage from 20 m. This proves `m_MaxHeight` restarts at the cutaway point.
   - Impact Bracing / Rogue boots / parkour still behave as vanilla when the chute isn't used.
 
 ### Phase 6: assets
-- [ ] Unity 2022.3.62f2 project. Model, materials and prefab (§5.14 A/B). Icon render (C). `make_deploy_sound.py` → WAV (D). Bundle build (E).
-- [ ] `ParachuteAssets` loads the prefab and clip, with fallbacks and clear errors if missing.
-- [ ] `ParachuteVisual` animation (§5.13). `sounds.xml` node plus the deploy and flutter loop.
+- [x] Unity 2022.3.62f2 project. Model, materials and prefab (§5.14 A/B). Icon render (C). `make_deploy_sound.py` → WAV (D). Bundle build (E).
+- [x] `ParachuteAssets` loads the prefab and clip, with fallbacks and clear errors if missing.
+- [x] `ParachuteVisual` animation (§5.13). `sounds.xml` node plus the deploy and flutter loop.
 - **Accept:**
   - The canopy is visible in first person (look up) and third person, opens with an overshoot, banks on turns and collapses on stow.
   - No pink shaders, no collisions with the canopy.
@@ -590,11 +590,14 @@ Item creation: `new ItemValue(ItemClass.GetItem(name).type, q, q, false)` then `
   - The icon shows in inventory, workbench, schematic and loot.
 
 ### Phase 7: polish & SP release (v0.9)
-- [ ] Tune defaults, write a README/changelog, test the matrix below, bump to 0.9.0.
+- [x] README and changelog (0.6.1).
+- [ ] Tune defaults.
+- [ ] Run the test matrix in §9. T17 (world loot) and T19 (trader stock) need a long playthrough.
+- [ ] Bump to 0.9.0.
 
-### Phase 8: multiplayer (v1.0), §6.
+### Phase 8: multiplayer (v1.0), §6. Not started.
 
-### Phase 9: worn parachute backpack (v1.0), §14.
+### Phase 9: worn parachute backpack (v1.0), §14. Not started.
 
 ---
 
