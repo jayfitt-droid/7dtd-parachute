@@ -12,16 +12,23 @@ internal static class ParachuteAssets
 {
     private const string BundleUri = "#@modfolder(Parachute):Resources/Parachute.unity3d?";
     internal const string CanopyName = "ParachuteCanopy";
+    internal const string PackName = "ParachutePack";
     internal const string DeployClipName = "ParachuteDeploy";
 
     private static bool loaded;
     private static bool warnedMissing;
     private static GameObject canopyPrefab;
+    private static GameObject packPrefab;
     private static AudioClip deployClip;
 
     internal static GameObject CanopyPrefab
     {
         get { Load(); return canopyPrefab; }
+    }
+
+    internal static GameObject PackPrefab
+    {
+        get { Load(); return packPrefab; }
     }
 
     internal static AudioClip DeployClip
@@ -43,6 +50,14 @@ internal static class ParachuteAssets
         }
         try
         {
+            packPrefab = DataLoader.LoadAsset<GameObject>(BundleUri + PackName, false);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning("[Parachute] Pack model failed to load: " + ex.Message);
+        }
+        try
+        {
             deployClip = DataLoader.LoadAsset<AudioClip>(BundleUri + DeployClipName, false);
         }
         catch (Exception ex)
@@ -50,8 +65,9 @@ internal static class ParachuteAssets
             Log.Warning("[Parachute] Deploy sound failed to load: " + ex.Message);
         }
 
-        if (canopyPrefab != null || deployClip != null)
+        if (canopyPrefab != null || packPrefab != null || deployClip != null)
             Log.Out("[Parachute] Asset bundle: canopy " + (canopyPrefab != null ? "loaded" : "missing") +
+                ", pack " + (packPrefab != null ? "loaded" : "missing") +
                 ", deploy sound " + (deployClip != null ? "loaded" : "missing") + ".");
         else if (!warnedMissing)
         {
@@ -64,6 +80,7 @@ internal static class ParachuteAssets
     {
         loaded = false;
         canopyPrefab = null;
+        packPrefab = null;
         deployClip = null;
     }
 }

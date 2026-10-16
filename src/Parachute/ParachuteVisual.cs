@@ -5,8 +5,9 @@ using UnityEngine;
 /// root, so it follows the physics position in both first and third person. All
 /// motion is code driven; the prefab must contain no colliders or rigidbodies.
 /// A riser strap rises from each shoulder and the suspension lines on that side
-/// gather at its top; both are re-aimed every frame, at the character's
-/// shoulder bones in third person, so they stay attached in any pose.
+/// gather at its top; both are re-aimed every frame, from the worn pack's
+/// shoulder straps (or the shoulder bones) in third person, so they stay
+/// attached in any pose.
 /// </summary>
 internal static class ParachuteVisual
 {
@@ -106,10 +107,11 @@ internal static class ParachuteVisual
 
     /// <summary>
     /// Places the two riser straps and gathers the lines at their tops. Side 0
-    /// is the player's left. Each strap starts at the shoulder (the upper-arm
-    /// bone in third person; a fixed point beside the head in first person,
-    /// where the body is not drawn, or if the bone cannot be found) and points
-    /// at the middle of that side's line attachments on the canopy.
+    /// is the player's left. Each strap starts at the shoulder and points at the
+    /// middle of that side's line attachments on the canopy. In third person the
+    /// shoulder is the top of the worn pack's shoulder strap, or the upper-arm
+    /// bone without a pack; in first person, where the body is not drawn, or if
+    /// neither can be found, it is a fixed point beside the head.
     /// </summary>
     private static void UpdateRisers()
     {
@@ -117,7 +119,13 @@ internal static class ParachuteVisual
 
         Transform leftBone = null;
         Transform rightBone = null;
-        if (!owner.bFirstPersonView && owner.emodel is EModelSDCS model && model.boneCatalog != null)
+        if (!owner.bFirstPersonView)
+        {
+            leftBone = ParachuteWorn.StrapTop(0);
+            rightBone = ParachuteWorn.StrapTop(1);
+        }
+        bool onPack = leftBone != null && rightBone != null;
+        if (!onPack && !owner.bFirstPersonView && owner.emodel is EModelSDCS model && model.boneCatalog != null)
         {
             model.boneCatalog.TryGetValue("LeftArm", out leftBone);
             model.boneCatalog.TryGetValue("RightArm", out rightBone);
@@ -141,9 +149,9 @@ internal static class ParachuteVisual
         for (int side = 0; side < 2; side++)
         {
             Transform bone = side == 0 ? leftBone : rightBone;
-            Vector3 shoulder = bone != null
-                ? bone.position + body.up * 0.05f
-                : body.TransformPoint(new Vector3(side == 0 ? -0.22f : 0.22f, 1.42f, -0.05f));
+            Vector3 shoulder = bone == null
+                ? body.TransformPoint(new Vector3(side == 0 ? -0.22f : 0.22f, 1.42f, -0.05f))
+                : onPack ? bone.position : bone.position + body.up * 0.05f;
             Vector3 toCanopy = count[side] > 0 ? centroid[side] / count[side] - shoulder : body.up;
             if (toCanopy.sqrMagnitude < 0.0001f) toCanopy = body.up;
             // Halfway between straight up and straight at the canopy, so the

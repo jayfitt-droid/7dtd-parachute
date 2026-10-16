@@ -19,6 +19,10 @@ internal sealed class ParachuteController : MonoBehaviour
     // The view is decided once per deploy, when the delay runs out, so a view the
     // player picks after that is never overridden.
     private bool viewDecided;
+    // What the worn pack was last synced for; a change re-syncs it.
+    private bool lastHasPack;
+    private bool lastFirstPerson;
+    private bool lastShowPack;
 
     internal static void Attach(EntityPlayerLocal entityPlayer)
     {
@@ -46,6 +50,7 @@ internal sealed class ParachuteController : MonoBehaviour
             Instance = null;
         }
         ParachuteVisual.Destroy();
+        ParachuteWorn.Destroy();
         ParachuteAudio.Reset();
         ParachuteState.Reset();
     }
@@ -136,6 +141,7 @@ internal sealed class ParachuteController : MonoBehaviour
             return;
         }
         lastPosition = position;
+        SyncWornBackstop(config);
 
         if (ParachuteState.IsActive)
         {
@@ -344,6 +350,30 @@ internal sealed class ParachuteController : MonoBehaviour
     /// the respawn set the view themselves. While the player is aiming it waits:
     /// Tick calls this again every frame until the switch happens.
     /// </summary>
+    /// <summary>
+    /// The SDCS postfixes cover most cases; this catches installing or removing
+    /// the mod, switching views and "chute reload" toggling show_pack, in case
+    /// none of them rebuilds the rig. Also re-attaches the pack if a rebuild took
+    /// it away. Ported from the GliderSuit mod.
+    /// </summary>
+    private void SyncWornBackstop(ParachuteConfig config)
+    {
+        bool hasPack = ParachuteEquip.HasParachute(player);
+        bool firstPerson = player.bFirstPersonView;
+        bool changed = hasPack != lastHasPack || firstPerson != lastFirstPerson || config.ShowPack != lastShowPack;
+        lastHasPack = hasPack;
+        lastFirstPerson = firstPerson;
+        lastShowPack = config.ShowPack;
+
+        bool missing = config.ShowPack && hasPack && !firstPerson && !ParachuteWorn.WorldPresent;
+        if (changed || missing)
+        {
+            EModelSDCS model = player.emodel as EModelSDCS;
+            if (model != null) ParachuteWorn.Sync(player, model.boneCatalog, WornKind.World);
+        }
+        ParachuteWorn.Tick(player);
+    }
+
     private bool restoreWaitLogged;
 
     /// <summary>

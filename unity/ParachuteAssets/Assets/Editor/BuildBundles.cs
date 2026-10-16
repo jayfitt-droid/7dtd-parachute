@@ -7,7 +7,7 @@ namespace ParachuteEditor
     /// <summary>
     /// Builds the canopy assets and packs them into the Windows asset bundle
     /// that ships in the mod as Resources/Parachute.unity3d. The asset names in
-    /// the bundle must stay ParachuteCanopy and ParachuteDeploy.
+    /// the bundle must stay ParachuteCanopy, ParachutePack and ParachuteDeploy.
     ///
     /// Headless build:
     ///   Unity.exe -batchmode -nographics -quit -projectPath unity/ParachuteAssets
@@ -24,6 +24,7 @@ namespace ParachuteEditor
         public static void Build()
         {
             CanopyBuilder.Build();
+            PackBuilder.Build();
 
             string outputDir = Path.Combine(Path.GetTempPath(), "ParachuteBundle");
             if (Directory.Exists(outputDir)) Directory.Delete(outputDir, true);
@@ -32,7 +33,7 @@ namespace ParachuteEditor
             var build = new AssetBundleBuild
             {
                 assetBundleName = BundleName,
-                assetNames = new[] { CanopyBuilder.PrefabPath, CanopyBuilder.AudioPath },
+                assetNames = new[] { CanopyBuilder.PrefabPath, PackBuilder.PrefabPath, CanopyBuilder.AudioPath },
             };
 
             AssetBundleManifest manifest = BuildPipeline.BuildAssetBundles(
@@ -77,8 +78,9 @@ namespace ParachuteEditor
             foreach (string assetName in bundle.GetAllAssetNames())
                 Debug.Log("[Parachute] Verify asset: " + assetName);
             GameObject prefab = bundle.LoadAsset<GameObject>("ParachuteCanopy");
+            GameObject pack = bundle.LoadAsset<GameObject>("ParachutePack");
             AudioClip clip = bundle.LoadAsset<AudioClip>("ParachuteDeploy");
-            Debug.Log("[Parachute] Verify prefab=" + (prefab != null) + " clip=" + (clip != null));
+            Debug.Log("[Parachute] Verify prefab=" + (prefab != null) + " pack=" + (pack != null) + " clip=" + (clip != null));
             bundle.Unload(true);
             EditorApplication.Exit(0);
         }

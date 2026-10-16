@@ -108,6 +108,30 @@
   // Default: 3.2
   "canopy_height": 3.2,
 
+  // Show the parachute pack on your back while the mod is installed in the
+  // chest armor you are wearing: in third person, in the inventory preview and
+  // on other players who have it. The canopy's riser straps start at the top
+  // of the pack's shoulder straps. Default: true
+  "show_pack": true,
+
+  // Where the pack sits, in meters from the upper-spine bone, as
+  // [right, up the spine, out of the chest]; negative z is behind you.
+  // Each value -1 to 1. Default: [0, 0.06, -0.14]
+  "pack_offset": [0, 0.06, -0.14],
+
+  // Extra rotation of the pack in those same axes, in degrees.
+  // Each value -180 to 180. Default: [0, 0, 0]
+  "pack_rotation": [0, 0, 0],
+
+  // Size of the pack. Allowed: 0.25 to 3. Default: 1.0
+  "pack_scale": 1.0,
+
+  // How far out the shoulder straps and chest strap come in front of you, to
+  // fit the chest of the armor you wear. Above 1 moves them out from the body,
+  // below 1 in toward it; the tops of the straps stay on the shoulders.
+  // Allowed: 0.3 to 3. Default: 0.92
+  "pack_chest_depth": 0.92,
+
   // Play the vanilla looping flutter sound while the canopy is open.
   // Default: true
   "play_flutter_loop": true,

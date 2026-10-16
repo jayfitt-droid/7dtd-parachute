@@ -34,6 +34,11 @@ internal sealed class ParachuteConfig
     public float ChaseCameraHeight = 1.8f;
     public float ChaseCameraDistanceMin = 4f;
     public float ChaseCameraDistanceMax = 6f;
+    public bool ShowPack = true;
+    public Vector3 PackOffset = new Vector3(0f, 0.06f, -0.14f);
+    public Vector3 PackRotation = Vector3.zero;
+    public float PackScale = 1f;
+    public float PackChestDepth = 0.92f;
     public float MinDeployHeight = 3f;
     public float FallSpeed = 4f;
     public float FallSpeedForward = 5.5f;
@@ -83,6 +88,11 @@ internal sealed class ParachuteConfig
             result.ChaseCameraHeight = Number(data, "chase_camera_height", 1.8f, 0f, 5f);
             result.ChaseCameraDistanceMin = Number(data, "chase_camera_distance_min", 4f, 1f, 20f);
             result.ChaseCameraDistanceMax = Number(data, "chase_camera_distance_max", 6f, 1f, 20f);
+            result.ShowPack = Boolean(data, "show_pack", true);
+            result.PackOffset = Vector(data, "pack_offset", result.PackOffset, -1f, 1f);
+            result.PackRotation = Vector(data, "pack_rotation", result.PackRotation, -180f, 180f);
+            result.PackScale = Number(data, "pack_scale", 1f, 0.25f, 3f);
+            result.PackChestDepth = Number(data, "pack_chest_depth", 0.92f, 0.3f, 3f);
             result.MinDeployHeight = Number(data, "min_deploy_height", 3f, 0f, 50f);
             result.FallSpeed = Number(data, "fall_speed", 4f, 1f, 30f);
             result.FallSpeedForward = Number(data, "fall_speed_forward", 5.5f, 1f, 30f);
@@ -175,6 +185,27 @@ internal sealed class ParachuteConfig
             !float.IsNaN(value) && !float.IsInfinity(value) && value >= min && value <= max)
             return value;
         Log.Warning("[Parachute] Invalid " + key + " (allowed " + min + " to " + max + "); using " + fallback);
+        return fallback;
+    }
+
+    private static Vector3 Vector(JObject data, string key, Vector3 fallback, float min, float max)
+    {
+        JToken token = data[key];
+        if (token == null) return fallback;
+        if (token.Type == JTokenType.Array && ((JArray)token).Count == 3)
+        {
+            var array = (JArray)token;
+            var values = new float[3];
+            bool valid = true;
+            for (int i = 0; i < 3 && valid; i++)
+            {
+                valid = (array[i].Type == JTokenType.Float || array[i].Type == JTokenType.Integer) &&
+                    float.TryParse(array[i].ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out values[i]) &&
+                    !float.IsNaN(values[i]) && !float.IsInfinity(values[i]) && values[i] >= min && values[i] <= max;
+            }
+            if (valid) return new Vector3(values[0], values[1], values[2]);
+        }
+        Log.Warning("[Parachute] Invalid " + key + " (three numbers, each " + min + " to " + max + "); using " + fallback);
         return fallback;
     }
 

@@ -2,6 +2,16 @@
 
 All notable changes to the Parachute mod. Versions match the Git tags and the version in `Mod\Parachute\ModInfo.xml`.
 
+## 0.6.4 - 2026-10-16
+
+### Added
+- A parachute pack on your back while the mod is installed in the chest armor you are wearing: a sport-rig container with the reserve on top, shoulder straps down to the waist, hip straps round to the container, a chest strap and a pilot-chute handle. It shows in third person, on the inventory character preview and on other players who also have the mod. It is hidden in first person, where the body is not drawn.
+- Under the canopy, the riser straps now start at the top of the pack's shoulder straps instead of at the shoulders.
+- New settings `show_pack` (true), `pack_offset` ([0, 0.06, -0.14]), `pack_rotation` ([0, 0, 0]), `pack_scale` (1.0) and `pack_chest_depth` (0.92), which moves the front of the straps out from or in toward the chest to fit the armor. `chute reload` moves the pack live.
+
+### Known issues
+- One placement does not fit every armor. With the Preacher outfit the bottom of the straps and the hip straps sink into the sash, and armor that has its own backpack clashes with the parachute pack.
+
 ## 0.6.3 - 2026-10-16
 
 ### Added

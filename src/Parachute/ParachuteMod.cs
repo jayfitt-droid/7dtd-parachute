@@ -78,6 +78,7 @@ internal static class ParachuteMod
     internal static void Reload()
     {
         Settings = ParachuteConfig.Load(Directory);
+        ParachuteWorn.ReapplyPlacement();
     }
 
     internal static void OnPlayerSpawnedInWorld(ref ModEvents.SPlayerSpawnedInWorldData data)
