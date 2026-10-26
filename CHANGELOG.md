@@ -1,6 +1,31 @@
 # Changelog
 
-All notable changes to the Parachute mod. Versions match the Git tags and the version in `Mod\Parachute\ModInfo.xml`.
+All notable changes to the Parachute mod. Versions match the Git tags and the version in `Mod\Parachute\ModInfo.xml`, except that a pre-release tag such as `v1.0.0-beta` carries the plain version (`1.0.0`) in `ModInfo.xml`, which is what the game shows.
+
+## 1.0.0-beta - 2026-10-26
+
+`ModInfo.xml` says 1.0.0. Multiplayer was tested on a v3.4 dedicated server with two players on separate PCs: each saw the other's canopy open, steer and collapse, the hanging pose, the pack and the sounds, with no errors in the logs. Not yet tested: a peer-hosted game, late joining, and removing the mod while another player watches.
+
+### Changed
+- Built for 7 Days to Die v3.4 (b6). On v3.3, keep using 0.6.4.
+
+### Added
+- Multiplayer, in peer-hosted games and on dedicated servers. Other players with the mod now see your canopy, its lines and riser straps open, bank and collapse, and hear the deploy sound and the flutter loop from where you are. Players who join or come into range while your canopy is open see it within a few seconds. The mod sends no network messages of its own, so a player without it is never kicked for that; they just do not see the parachute. Install the mod on the server and on every player's game (see "Multiplayer" in `README.md`).
+- `chute status` lists the other players this game shows under a canopy.
+- Other players under a canopy hang in the idle pose instead of walking in the air. Each game works out other players' walk animation from their speed, so the mod now applies the hanging pose there too.
+
+### Fixed
+- Another player's worn pack now appears and disappears when they install or remove the parachute in the chest armor they are already wearing, instead of waiting for their next equipment change.
+- The collapsing canopy could stay hanging over the player after a stow when the frame rate was below the physics rate. The canopy now finishes collapsing on its own clock.
+- On a Windows dedicated server the mod could not find its folder, logged "Config load failed: Invalid path" and ignored `ParachuteConfig.json`. It now uses the folder the game gives it.
+- The version written to the game log on load was out of date.
+- The deploy sound ended in a loud low thump about a second after opening. The bass "inflation thump" is gone; a light fabric snap is left, and the rip and whoosh are as loud as before.
+- `debug` was shipped switched on since 0.6.3, showing a speed readout on screen. It is off again by default.
+
+### Known issues
+- Under another player's canopy, the banking and dive/flare pitch are estimated from how they move and judged against your own speed settings, so they can lag slightly or differ from what that player sees.
+- Another player's canopy collapses about half a second after they land, when their landing grace ends.
+- The deploy sound is better without the thump but is not final; it will be revisited.
 
 ## 0.6.4 - 2026-10-16
 

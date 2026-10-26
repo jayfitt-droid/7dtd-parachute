@@ -179,6 +179,8 @@ public sealed class ConsoleCmdParachute : ConsoleCmdAbstract
             " deployed=" + player.Buffs.HasBuff("buffParachuteDeployed") +
             " descent=" + ParachuteState.CurrentFallSpeed.ToString("F1") + " m/s" +
             " glide=" + ParachuteState.CurrentGlideSpeed.ToString("F1") + " m/s");
+        Log.Out("[Parachute] other players under a canopy: " + ParachuteRemote.Describe() +
+            (SingletonMonoBehaviour<ConnectionManager>.Instance.IsServer ? " (host)" : " (client)"));
         Log.Out("[Parachute] fall_speed=" + config.FallSpeed + " glide_speed=" + config.GlideSpeed +
             " left_right=" + config.LeftRight + " strafe_speed=" + config.StrafeSpeed + " turn_rate=" + config.TurnRate + " deploy_time=" + config.DeployTime +
             " input=" + config.DeployInput + " key=" + config.DeployKey + " debug=" + config.Debug);

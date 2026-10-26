@@ -2,7 +2,7 @@
 
 > **Audience:** any engineer or AI model picking this up cold. Read §0–§3 first and skip nothing in §3 ("Verified engine facts"). Every claim tagged **[VERIFIED]** was read directly from the v3.3 decompiled source or game XML. **[VERIFY]** means "plausible, confirm before relying on it". Work the phases in §8 in order; each one has acceptance criteria.
 >
-> **Status (2026-10-16):** v0.6.1. Phases 0–6 are done (shipped in 0.4.0–0.6.1, see `CHANGELOG.md`). Phase 7 is partly done; Phases 8 and 9 (v1.0) are not started.
+> **Status (2026-10-26):** v1.0.0-beta (1.0.0 in `ModInfo.xml`). Phases 0–6 are done (shipped in 0.4.0–0.6.1, see `CHANGELOG.md`). Phase 7 is partly done. Phase 8 (multiplayer) is built and partly tested on a dedicated server (see Phase 8 in §8); Phase 9 (worn pack) shipped in 0.6.4.
 > **Author/owner:** Jason. Plan date: 2026-10-12.
 
 ---
@@ -61,11 +61,11 @@ It is built as a C# DLL plus Harmony patches, following the same structure as Ja
 | Thing | Location / value |
 |---|---|
 | Source repo root (this plan lives here) | `C:\Users\Jason\Projects\7d2d\Parachute` |
-| Game install (v3.3) | `C:\7D2D\Custom\v3.3` |
-| Managed DLLs to reference | `C:\7D2D\Custom\v3.3\7DaysToDie_Data\Managed\` (`Assembly-CSharp.dll`, `Assembly-CSharp-firstpass.dll`, `UnityEngine.dll`, `UnityEngine.CoreModule.dll`, `UnityEngine.PhysicsModule.dll`, `UnityEngine.AudioModule.dll`, `UnityEngine.AssetBundleModule.dll`, `UnityEngine.InputLegacyModule.dll`, `LogLibrary.dll`, `Newtonsoft.Json.dll`, `InControl.dll`) |
-| Harmony | `C:\7D2D\Custom\v3.3\Mods\0_TFP_Harmony\0Harmony.dll` (TFP's HarmonyX wrapper ships with the game) |
-| Decompiled source (dotPeek) | `D:\dotPeek Test\Assembly-CSharp\` (flat `*.cs` per type, plus subfolders such as `Audio\`) |
-| Vanilla config XML | `C:\7D2D\Custom\v3.3\Data\Config\` |
+| Game install (v3.4 b6 since 1.0.0-beta; v3.3 b18 before) | `C:\7D2D\Custom\v3.4` |
+| Managed DLLs to reference | `C:\7D2D\Custom\v3.4\7DaysToDie_Data\Managed\` (`Assembly-CSharp.dll`, `Assembly-CSharp-firstpass.dll`, `UnityEngine.dll`, `UnityEngine.CoreModule.dll`, `UnityEngine.PhysicsModule.dll`, `UnityEngine.AudioModule.dll`, `UnityEngine.AssetBundleModule.dll`, `UnityEngine.InputLegacyModule.dll`, `LogLibrary.dll`, `Newtonsoft.Json.dll`, `InControl.dll`) |
+| Harmony | `C:\7D2D\Custom\v3.4\Mods\0_TFP_Harmony\0Harmony.dll` (TFP's HarmonyX wrapper ships with the game) |
+| Decompiled source (dotPeek) | v3.4 b6: `C:\Users\Jason\Projects\7d2d\info\3.4 (b6) assemblies\Assembly-CSharp\`; v3.3 b18: `info\3.3 (b18) assemblies\` or `D:\dotPeek Test\Assembly-CSharp\` (flat `*.cs` per type, plus subfolders such as `Audio\`). On 2026-10-26 every game type and XML node the mod uses was compared between the two: none the mod relies on changed, and the Unity version is still 2022.3.62f2, so the asset bundle needs no rebuild |
+| Vanilla config XML | `C:\7D2D\Custom\v3.4\Data\Config\` |
 | Unity version used by the game | **2022.3.62f2** [VERIFIED from the bundle header of `data.unity3d` and `GrapplingHook.unity3d`] |
 | Target framework | **.NET Framework 4.8** (matches GrapplingHook.dll [VERIFIED]) |
 | Reference mod (same author) | `C:\7D2D\Custom\v3.3\Mods\GrapplingHook\`: copy its conventions for the JSON-with-comments config, `IModApi` + `Harmony.PatchAll`, `ConsoleCmdAbstract`, `#@modfolder(...)` bundle paths, a 160×160 PNG icon in `UIAtlases/ItemIconAtlas`, and the schematic pattern. **If the GrapplingHook C# source exists on disk, use it as the template ([ASK] Jason for its path).** |
@@ -515,24 +515,32 @@ Item creation: `new ItemValue(ItemClass.GetItem(name).type, q, q, false)` then `
 - Remote players do **not** see others' canopies (accepted limitation).
 - XML (items, recipes, loot, buffs) must be on the host as usual.
 
-### Phase 2 (v1.0): full MP + dedicated server
-1. **`NetPackageParachuteState`** (`NetPackage` subclass) carries `entityId` and `state` (byte: Stowed/Deploying/Open/Stowing), plus `yawInput` (sbyte) and `forward/back` (bits) for canopy banking.
-   - Client → server on every state change (and input changes at most 10 Hz).
-   - Server → all clients except the sender: `SendPackage(..., _allButAttachedToEntityId: entityId)`.
-   - **[VERIFY]** the v3.3 `NetPackage` abstract members (`read(PooledBinaryReader)`, `write(PooledBinaryWriter)`, `ProcessPackage(World, GameManager)`, `GetLength()`) in `NetPackage.cs`, and copy a small vanilla package (e.g. `NetPackageEntityStealth`) as the template. Custom NetPackages in mod DLLs are auto-registered by type scan. **[VERIFY]** in `NetPackageManager.cs`.
-2. **`RemoteParachuteRegistry`**: on receipt, attach or detach a `ParachuteVisual` on that `EntityPlayer` (non-local). Animate banking from the replicated input. Clean up on `EntityKilled` / `PlayerDisconnected` / despawn.
-3. **Sound for others:** use `Audio.Manager.BroadcastPlay(entity, pos, "parachute_deploy")` instead of `PlayInsidePlayerHead`.
-4. **Late joiners:** on `PlayerSpawnedInWorld` (server side), send the current open-chute states to the joining client.
-5. **Dedicated server:** the DLL must load headless. Guard every Unity rendering/audio call with `GameManager.IsDedicatedServer` and never load the bundle on a dedicated server.
-6. **Authority/anti-abuse (light):** the server ignores `Open` states from players who don't have `buffParachuteHarness`. `buffParachuteDeployed` is a normal buff and replicates.
-7. **Test matrix:** listen host + 1 client, dedicated + 2 clients, client with a high ping (clumsy/latency sim), late join while someone is in the air.
+### Phase 2 (built in 1.0.0-beta, 2026-10-26): full MP + dedicated server
+
+**What was built differs from the original idea below: there is no custom NetPackage.** Reasons, all read from the v3.3 decompiled source:
+
+- **The deployed state is already replicated.** `buffParachuteDeployed` is added and removed with `_netSync = true`. `EntityBuffs.AddBuffNetwork`/`RemoveBuffNetwork` send `NetPackageAddRemoveBuff` to the server, which relays it to every client in range of the player (`_entitiesInRangeOfEntity`), skipping the instigator. The owner passes its own entity id as the instigator so the add is not echoed back. On top of that, `PlayerEntityStats` sends the whole buff list (`NetPackageEntityStatsBuff`) every few seconds and the server relays it to all clients, so players who join or come into range later catch up. `EntityBuffs.Tick` runs for remote entities too, so a removal takes effect on other clients at once.
+- **A custom NetPackage would make the mod mandatory to connect.** `NetPackageManager.IdMappingsReceived` disconnects a client that does not know a package type the server lists (`EKickReason.UnknownNetPackage`). Using the buff keeps a mismatched install harmless.
+- **Flight, fall damage and the animation are owned by the player's own client.** Player movement is client-authoritative and replicated by the game. Remote players never run `MoveEntityHeaded` on the server (only with `RootMotion`), so the server never runs `fallHitGround` or `FallImpact` for them; fall damage is decided on the owning client, where the patches already work. The hang pose is applied in a prefix on `AvatarLocalPlayerController._setBool/_setFloat/_setInt`, before the base method queues the value in `changedAnimationParameters`, so the patched value is what `NetPackageEntityAnimationData` sends to others.
+- **The worn pack needs no message either:** equipment, including each item's mods, is replicated by `NetPackagePlayerEquipment` (`ItemValue.Write` writes the modifications).
+
+Code:
+
+1. `CanopyRig` (in `ParachuteVisual.cs`): one canopy for any player, with its own open and collapse clock. `ParachuteVisual` wraps the local player's rig. For another player, the riser straps start at their pack's `StrapTop_L/R` (`ParachuteWorn.FindStrapTop`), or their arm bones without a pack.
+2. `ParachuteRemote`: ticked by the local player's `ParachuteController` (so never on a dedicated server). Each frame it walks `world.Players.list`; a non-local player with `buffParachuteDeployed`, alive and not attached to an entity, gets a rig, a positional deploy sound (`ParachuteAudio.PlayRemoteDeploy`: a 3D `AudioSource` with the bundle clip, or vanilla `Parachute_Opens` through `Audio.Manager.Play(entity, ...)`) and the flutter loop on that entity (`Audio.Manager.Play(entity, "Parachute_Flutter_Lp")`, retuned to `flutter_pitch`). When the buff goes, the rig collapses and the loop stops. Players who leave or go out of range are cleaned up. Banking and pitch are estimated from the player's smoothed movement against the viewer's own speed settings.
+3. Every 0.5 s `ParachuteWorn.SyncRemote` re-syncs each other player's pack, because the game does not rebuild a remote rig when only the mods in worn armor change.
+4. `chute status` lists the other players shown under a canopy, and whether this game is the host or a client.
+
+Install: the server sends its XML to clients (`WorldStaticData.xmlsToLoad`: items, buffs, sounds, recipes, loot, traders), but not the DLL, the bundle or the icon atlas, so every player installs the mod. Config is per client and is not synced (known limitation).
+
+The original idea, kept for reference: a `NetPackageParachuteState` (entityId, state, yawInput, forward/back bits) sent client to server to all others, a `RemoteParachuteRegistry`, `BroadcastPlay` for sound, a late-join resend, and a server-side harness check.
 
 ---
 
 ## 7. Build & deploy
 - `Parachute.csproj`: `TargetFramework net48`, `LangVersion latest`, `Optimize`. Every game reference `Private=false` (do not copy game DLLs). Reference `0Harmony` from `Mods\0_TFP_Harmony`.
-- Post-build: copy `Parachute.dll` (+ `.pdb` in Debug) into `Mod\Parachute\`. Then `tools\deploy.ps1` mirrors `Mod\Parachute\` → `C:\7D2D\Custom\v3.3\Mods\Parachute\` (robocopy /MIR). **Never touch other mods.**
-- Game path in one MSBuild property, `GamePath=C:\7D2D\Custom\v3.3`, so it's easy to change.
+- Post-build: copy `Parachute.dll` (+ `.pdb` in Debug) into `Mod\Parachute\`. Then `tools\deploy.ps1` mirrors `Mod\Parachute\` → `C:\7D2D\Custom\v3.4\Mods\Parachute\` (robocopy /MIR). **Never touch other mods.**
+- Game path in one MSBuild property, `GamePath=C:\7D2D\Custom\v3.4`, so it's easy to change.
 - Launch **without EAC** (`7DaysToDie.exe`, or Jason's mod launcher; ModLauncher config shows `UseEAC=false`).
 - Logs: `%APPDATA%\7DaysToDie\logs\` or `7DaysToDie_Data\output_log*.txt`. **[VERIFY]** which one is used on this install. Search for `[Parachute]`, `XML`, `Exception`.
 
@@ -596,9 +604,9 @@ Item creation: `new ItemValue(ItemClass.GetItem(name).type, q, q, false)` then `
 - [ ] Run the test matrix in §9. T17 (world loot) and T19 (trader stock) need a long playthrough.
 - [ ] Bump to 0.9.0.
 
-### Phase 8: multiplayer (v1.0), §6. Not started.
+### Phase 8: multiplayer (v1.0), §6. Built in 1.0.0-beta (developed as 0.7.0). Tested 2026-10-26 on a v3.4 dedicated server, Jason and a second player on separate PCs: M1, M2, M3 and M5 passed. M3 first failed, other players looked as if they were walking in the air; fixed by `Patch_RemoteAvatarAnimation`. Still to run: M4 and M6–M14, and the whole list in a peer-hosted game.
 
-### Phase 9: worn parachute backpack (v1.0), §14. Built, not yet tested in game.
+### Phase 9: worn parachute backpack (v1.0), §14. Shipped in 0.6.4; other players' packs are covered by the multiplayer tests (M9, M10).
 
 ---
 
@@ -624,8 +632,34 @@ Item creation: `new ItemValue(ItemClass.GetItem(name).type, q, q, false)` then `
 | T19 | Visit traders at mid trader stage over several restocks | Mod sometimes in stock at 2500 (before bartering perks); schematic sometimes in stock. **Untested as of v0.6.0, see the note below** |
 | T16 | Exit to menu and reload the world mid-flight | No exceptions; state stowed on load |
 | T17 | Loot T2 schematic containers (`lootgroup schematicsModsAndGeneralT2`) at mid game stage | Schematic appears at a rate similar to Impact Bracing. **Untested, see the note below** |
-| T18 | Phase 2: remote player sees canopy and banking; hears deploy; late-joiner sees an existing open canopy | ✓ |
+| T18 | Multiplayer | See the multiplayer tests M1–M14 below |
 | T20 | v1.0 backpack (§14): install the mod in worn chest armor, view in third person and the character screen; remove it; deploy and stow | Pack appears on the back while the mod is installed and disappears when it is removed; straps and lines run from the pack when the canopy is open |
+
+### Multiplayer tests (1.0.0)
+
+You need two PCs with two Steam accounts: one account cannot be in the same game twice. Use the same mod version everywhere and keep EAC off everywhere. Set `debug` to `true` in `ParachuteConfig.json` on both clients, so the log says `[Parachute] <name>'s canopy opened` and `... stowed` for the other player.
+
+- **Dedicated server (DS):** install the mod in the server's `Mods` folder next to `0_TFP_Harmony`, set `EACEnabled` to `false` in `serverconfig.xml`, start it, and connect two clients, A and B. Give both admin (`admin add <steam id> 0` in the server console) so `chute` works for them.
+- **Peer-hosted (PH):** A hosts a game with EAC off; B joins.
+
+Run M1–M12 on DS, then again on PH, swapping roles once so both the host and the joined player fly. To get airborne: `chute kit`, wear the outfit, `chute up 80`.
+
+| # | Scenario | Expected |
+|---|---|---|
+| M1 | DS start | Server log has `[Parachute] Loaded v1.0.0` and `patch classes applied`, and no `[Parachute]` errors, XML or XPath warnings, or exceptions |
+| M2 | Join | Both clients connect without a kick; each client log has `[Parachute] Loaded v1.0.0` |
+| M3 | A opens the canopy; B watches from nearby, in third person and in first person | B sees A's canopy open, with lines and riser straps rising from A's pack, and hears the deploy sound and the flutter from A's position (louder close up, fading with distance). A's body hangs in the idle pose, not the falling animation. B's `chute status` lists A |
+| M4 | A dives (Forward), flares (Back) and slides left and right | On B, A's canopy pitches down, pitches up and banks roughly in step |
+| M5 | A lands | A takes no damage. On B, A's canopy collapses about half a second later and the flutter stops |
+| M6 | A cuts away at about 25 m (Jump again) | On B the canopy collapses at once; A takes normal fall damage |
+| M7 | A and B under canopy at the same time | Each sees both canopies; no doubled sounds |
+| M8 | Late join: A opens at 150 m (`chute up 150`), then B connects or walks in from out of range | B sees A's canopy within a few seconds |
+| M9 | A removes the parachute mod from the worn armor, then puts it back | On B, A's pack disappears and comes back within about a second |
+| M10 | A takes the chest armor off and puts it back on | On B the pack disappears and comes back |
+| M11 | A disconnects, or dies, under canopy | On B the canopy and the flutter go away; no errors in B's log |
+| M12 | A opens the canopy, then both quit to the menu and rejoin | Nothing stuck on either side; after landing, A's `chute status` shows `state=Stowed` and `deployed=False` |
+| M13 | B joins without the mod (DS or PH) | B is not kicked. B cannot open a canopy, sees a blank icon for the parachute items and no canopy on A. No errors on the server or on A |
+| M14 | Optional: lag on B (for example 200 ms with the clumsy tool) | A's canopy opens and stows later on B by about the lag, and never stays stuck open |
 
 **World loot (T17) is shipped untested.** `Config/loot.xml` adds the schematic to the vanilla `schematicsModsAndGeneralT2` loot group, the same pool as the Impact Bracing schematic, so it can turn up wherever tier-2 mod schematics drop. The drop is random and tied to loot stage, so like the trader stock it can only be confirmed over a long playthrough with the mods installed. Unverified until then: that the schematic drops at all, and that it is about as common as Impact Bracing's.
 
@@ -663,6 +697,9 @@ Item creation: `new ItemValue(ItemClass.GetItem(name).type, q, q, false)` then `
 5. **GrapplingHook interaction:** ~~auto-stow when a grapple attaches?~~ **Decided: no auto-stow. The canopy stays open while grappling; the two mods do not know about each other.**
 6. **Canopy style:** rectangular ram-air (planned) or a round military canopy? Any color preference?
 7. **Test outfit:** `armorScavengerOutfit` Q6 OK as the default for `chute outfit`/`kit`?
+
+### Open items (2026-10-26)
+- **Deploy sound.** In 1.0.0-beta the bass "inflation thump" was removed from `tools/make_deploy_sound.py` and the bundle rebuilt. Jason finds it better but wants to revisit the sound later.
 
 ## 13. GrapplingHook interaction (deferred; revisit later)
 

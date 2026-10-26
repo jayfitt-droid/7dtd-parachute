@@ -1,6 +1,6 @@
-# Parachute for 7 Days to Die v3.3.0 (b18)
+# Parachute for 7 Days to Die v3.4 (b6)
 
-A single-player mod that adds a parachute as a chest-armor mod. Install it in the chest armor you are wearing, and while falling you can press Jump to open a steerable ram-air canopy. You take no fall damage while the canopy is open. The parachute is not used up: it repacks itself and can be deployed again as often as you like.
+A mod that adds a parachute as a chest-armor mod, for single player and multiplayer (peer-hosted games and dedicated servers). Install it in the chest armor you are wearing, and while falling you can press Jump to open a steerable ram-air canopy. You take no fall damage while the canopy is open. The parachute is not used up: it repacks itself and can be deployed again as often as you like.
 
 | Item | What it is | How you get it |
 |---|---|---|
@@ -18,6 +18,17 @@ Traders can stock the mod at random with their other armor mods, for 2500 before
 3. Start the game with Easy Anti-Cheat turned off; mods with code do not load with it on.
 
 To remove the mod, delete `Mods\Parachute`.
+
+### Multiplayer
+
+Install the same version of the mod on the server and on every player's game.
+
+- **Dedicated server:** unzip it into the server's `Mods` folder, next to `0_TFP_Harmony`, and turn Easy Anti-Cheat off in `serverconfig.xml` (`EACEnabled` set to `false`).
+- **Peer-hosted game:** the host and everyone who joins installs it and starts the game with Easy Anti-Cheat off.
+- **Why every player needs it:** the server sends its item, recipe, buff and sound settings to players as they join, but not the mod's code, the canopy and pack models or the inventory icon. A player who joins without the mod is not kicked, but cannot open a canopy, sees a blank icon for the parachute items, and does not see other players' canopies or packs.
+- The mod adds no network messages of its own. Each player's game flies that player's canopy and decides their fall damage; other players' games draw the canopy, lines, pack and sounds from the "canopy open" state the game already shares between players.
+- Settings in `ParachuteConfig.json` are read by each player's own game and are not sent by the server. Speeds and the camera follow your own file. To keep everyone the same, give all players the same file.
+- `chute` console commands need admin permission on a server, like the game's own cheat commands.
 
 ## Controls
 
@@ -103,7 +114,7 @@ The two mods work side by side and neither needs the other. The Jump press that 
 
 ## Building from source
 
-Requirements: the .NET SDK and a 7 Days to Die v3.3 install. The project file and `tools\deploy.ps1` point at `C:\7D2D\Custom\v3.3`; change those paths to your own install, or pass `-p:GamePath=...` to the build.
+Requirements: the .NET SDK and a 7 Days to Die v3.4 install. The project file and `tools\deploy.ps1` point at `C:\7D2D\Custom\v3.4`; change those paths to your own install, or pass `-p:GamePath=...` to the build.
 
 - `powershell -ExecutionPolicy Bypass -File package.ps1` compiles the mod and writes `dist\Parachute-<version>.zip`, the file players install. The version comes from `Mod\Parachute\ModInfo.xml`. It uses the asset bundle and icon as they are, so rebuild those first if the art changed.
 - For development, `build-deploy.cmd` compiles the DLL into `Mod\Parachute` and mirrors that folder into the game's `Mods\Parachute`. It stops before deploying if the build fails. Only `Mods\Parachute` is touched.
@@ -112,10 +123,9 @@ Requirements: the .NET SDK and a 7 Days to Die v3.3 install. The project file an
   - `ParachuteEditor.CanopyPreview.Render` renders the canopy to PNG files for a quick look without starting the game.
   - `ParachuteEditor.IconRenderer.Render` renders the inventory icon's master image; `tools\make_icon.py` trims and shrinks it to the 160x160 icon.
 - `tools\make_deploy_sound.py` generates the deploy sound (needs Python with numpy).
+- `release\description.md` and `release\description.bbcode` are the mod page descriptions, in Markdown and in BBCode for sites such as Nexus Mods. Update both with each release.
 - `plan.md` is the design document: how the flight and fall-damage patches work, the test plan, and what is still to do.
 
 ## Status
 
-Version 0.6.1. Built against single-player v3.3.0 (b18) and still in development: deploying, steering, the canopy and the sounds have been tried in game, but the full test plan in `plan.md` has not been run. In particular, the trader stock and the schematic's world-loot drop have not been seen in game yet, because they need a long playthrough.
-
-Multiplayer and dedicated servers are not supported: other players do not see your canopy. That, and a parachute backpack worn on the character, are planned for 1.0. See `CHANGELOG.md` for what changed in each version.
+Version 1.0.0-beta (the game shows 1.0.0). Built against v3.4 (b6). Deploying, steering, the canopy, the pack and the sounds have been tried in single player, and multiplayer has been tried on a dedicated server with two players. Not yet tried: a peer-hosted game, late joining and some of the other cases in the multiplayer test plan (`plan.md` section 9). The deploy sound will be revisited. The trader stock and the schematic's world-loot drop have not been seen in game yet, because they need a long playthrough. See `CHANGELOG.md` for what changed in each version.

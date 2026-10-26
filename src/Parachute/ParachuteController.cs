@@ -4,7 +4,9 @@ using UnityEngine;
 /// <summary>
 /// Lives on the local player entity. Owns input, the Jump press, the deploy /
 /// stow decisions and the per-step speed targets that the Harmony patches read
-/// back out of ParachuteState. Phase 1 is local-only.
+/// back out of ParachuteState. In multiplayer every client runs its own player's
+/// flight; this component also ticks ParachuteRemote, which draws other players'
+/// canopies.
 /// </summary>
 internal sealed class ParachuteController : MonoBehaviour
 {
@@ -50,6 +52,7 @@ internal sealed class ParachuteController : MonoBehaviour
             Instance = null;
         }
         ParachuteVisual.Destroy();
+        ParachuteRemote.Clear();
         ParachuteWorn.Destroy();
         ParachuteAudio.Reset();
         ParachuteState.Reset();
@@ -93,6 +96,14 @@ internal sealed class ParachuteController : MonoBehaviour
         {
             Log.Warning("[Parachute] Update error: " + ex.Message);
         }
+        try
+        {
+            ParachuteRemote.Tick(player);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning("[Parachute] Remote players error: " + ex.Message);
+        }
     }
 
     private void FixedUpdate()
@@ -113,8 +124,9 @@ internal sealed class ParachuteController : MonoBehaviour
         if (GameManager.IsDedicatedServer || player == null) return;
         try
         {
-            ParachuteVisual.Tick(ParachuteMod.Settings, ParachuteState.Phase,
+            ParachuteVisual.Tick(ParachuteMod.Settings,
                 ParachuteState.LastTurn, ParachuteState.LastForward, ParachuteState.LastBack);
+            ParachuteRemote.LateTick();
         }
         catch (Exception ex)
         {
@@ -156,7 +168,7 @@ internal sealed class ParachuteController : MonoBehaviour
         bool wantBuff = ParachuteState.IsActive || ParachuteState.InGrace;
         bool hasBuff = player.Buffs.HasBuff("buffParachuteDeployed");
         if (wantBuff && !hasBuff) AddDeployedBuff();
-        else if (!wantBuff && hasBuff) player.Buffs.RemoveBuff("buffParachuteDeployed", -1, true);
+        else if (!wantBuff && hasBuff) player.Buffs.RemoveBuff("buffParachuteDeployed", player.entityId, true);
 
         PlayerActionsLocal input = player.playerInput;
         bool airborne = !Grounded();
@@ -433,9 +445,14 @@ internal sealed class ParachuteController : MonoBehaviour
         return null;
     }
 
+    /// <summary>
+    /// The buff is synced to the server and on to every client near this player;
+    /// that is how other players' clients know to draw this canopy (ParachuteRemote).
+    /// This player is named as the instigator so the server does not echo it back.
+    /// </summary>
     private void AddDeployedBuff()
     {
-        EntityBuffs.BuffStatus status = player.Buffs.AddBuff("buffParachuteDeployed", -1, true);
+        EntityBuffs.BuffStatus status = player.Buffs.AddBuff("buffParachuteDeployed", player.entityId, true);
         if (status != EntityBuffs.BuffStatus.Added)
             Log.Warning("[Parachute] Could not add buffParachuteDeployed: " + status);
     }

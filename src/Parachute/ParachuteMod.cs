@@ -11,7 +11,11 @@ public sealed class ModApi : IModApi
         // the mod down with it. Events come first; patches last.
         try
         {
-            ParachuteMod.Directory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".";
+            // A Windows dedicated server loads mod DLLs from bytes, so the assembly
+            // has no file location there; the game's own Mod.Path always works.
+            string location = Assembly.GetExecutingAssembly().Location;
+            ParachuteMod.Directory = mod != null && !string.IsNullOrEmpty(mod.Path) ? mod.Path
+                : !string.IsNullOrEmpty(location) ? Path.GetDirectoryName(location) : ".";
             ParachuteMod.Reload();
         }
         catch (Exception ex)
@@ -36,7 +40,7 @@ public sealed class ModApi : IModApi
 
 internal static class ParachuteMod
 {
-    internal const string Version = "0.6.1";
+    internal const string Version = "1.0.0";
     internal static string Directory = "";
     internal static ParachuteConfig Settings = new ParachuteConfig();
 
@@ -103,6 +107,7 @@ internal static class ParachuteMod
         try
         {
             ParachuteController.Detach();
+            ParachuteRemote.Clear();
             ParachuteAssets.Clear();
         }
         catch (Exception ex)

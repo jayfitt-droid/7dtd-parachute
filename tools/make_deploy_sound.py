@@ -10,10 +10,13 @@ regenerated and committed. Layers:
   2. 0.15-0.85 s  fabric unfurl: pink noise through a low-pass that sweeps
                   2.5 kHz down to 300 Hz, with a rise-then-fall envelope and a
                   light random tremolo.
-  3. ~0.80 s      canopy snap and inflation thump: a 55->32 Hz sine (plus a
-                  quiet octave above so small speakers still carry it) with a
-                  200 ms exponential decay, a short filtered noise transient,
-                  and a 400 ms fabric tail.
+  3. ~0.80 s      canopy snap: a short filtered noise crack and a 400 ms
+                  fabric tail. Until 0.7.0 this layer also had a 55->32 Hz
+                  bass "inflation thump"; players heard it as a strange thump
+                  after the canopy opened, so it was removed.
+
+The level is set so the rip and whoosh are as loud as they were with the thump
+(see OUTPUT_GAIN), not normalized to the new peak.
 """
 
 import argparse
@@ -26,6 +29,9 @@ import numpy as np
 
 SAMPLE_RATE = 44100
 SEED = 20261012
+# Fixed gain in place of peak normalization. The 0.6.x mix was normalized to
+# -1 dBFS on the thump's peak; this keeps the remaining layers at that level.
+OUTPUT_GAIN = 0.8913 / 0.9
 
 
 def one_pole_lowpass(x, cutoff_hz, sample_rate=SAMPLE_RATE):
@@ -115,21 +121,14 @@ def build():
     whoosh /= max(np.max(np.abs(whoosh)), 1e-9)
     add_at(track, unfurl_start, whoosh * 0.55)
 
-    # --- 3. Canopy snap and inflation thump ------------------------------
+    # --- 3. Canopy snap -------------------------------------------------
     snap_start = 0.80
-    thump_len = int(0.60 * SAMPLE_RATE)
-    t = np.arange(thump_len) / SAMPLE_RATE
-    freq = np.linspace(55.0, 32.0, thump_len)
-    phase = 2.0 * math.pi * np.cumsum(freq) / SAMPLE_RATE
-    thump = (np.sin(phase) + 0.35 * np.sin(2.0 * phase)) * np.exp(-t * (1.0 / 0.20))
-    # 10 ms filtered noise transient on top of the snap
+    # 10 ms filtered noise crack as the canopy pressurises
     transient_len = int(0.010 * SAMPLE_RATE)
     transient = bandpass(rng.standard_normal(transient_len), 200.0, 1500.0)
     transient *= np.exp(-np.arange(transient_len) / (0.25 * transient_len))
     transient /= max(np.max(np.abs(transient)), 1e-9)
-    thump[:transient_len] += transient * 0.6
-    thump /= max(np.max(np.abs(thump)), 1e-9)
-    add_at(track, snap_start, thump * 0.9)
+    add_at(track, snap_start, transient * 0.35)
 
     # 400 ms fabric tail after the snap
     tail_len = int(0.40 * SAMPLE_RATE)
@@ -139,10 +138,8 @@ def build():
     tail /= max(np.max(np.abs(tail)), 1e-9)
     add_at(track, snap_start + 0.03, tail * 0.30)
 
-    # --- Normalize and fade ----------------------------------------------
-    peak = np.max(np.abs(track))
-    if peak > 0:
-        track *= (10 ** (-1.0 / 20.0)) / peak
+    # --- Level and fade --------------------------------------------------
+    track *= OUTPUT_GAIN
     fade = int(0.005 * SAMPLE_RATE)
     track[:fade] *= np.linspace(0.0, 1.0, fade)
     track[-fade:] *= np.linspace(1.0, 0.0, fade)

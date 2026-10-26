@@ -4,7 +4,7 @@
 	<DisplayName value="Parachute" />
 	<Description value="A chest-armor mod that lets you deploy a steerable parachute in mid-air." />
 	<Author value="Jason" />
-	<Version value="0.6.4" />
+	<Version value="1.0.0" />
 	<Website value="" />
 	<SkipWithAntiCheat value="true" />
 </xml>

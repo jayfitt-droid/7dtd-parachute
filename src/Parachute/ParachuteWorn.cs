@@ -100,6 +100,33 @@ internal static class ParachuteWorn
         return strapTops[side];
     }
 
+    /// <summary>
+    /// The top of another player's shoulder strap on that side (0 is the left),
+    /// found on their rig; null without a pack.
+    /// </summary>
+    internal static Transform FindStrapTop(EntityAlive entity, int side)
+    {
+        EModelSDCS model = entity != null ? entity.emodel as EModelSDCS : null;
+        Transform spine = model != null ? Bone(model.boneCatalog, "Spine3") : null;
+        Transform pack = spine != null ? spine.Find(RootName) : null;
+        return pack != null ? pack.Find(side == 0 ? "StrapTop_L" : "StrapTop_R") : null;
+    }
+
+    /// <summary>
+    /// Backstop for another player, called a few times a second. The game does not
+    /// rebuild a remote player's rig when only the mods in their worn armor change,
+    /// so installing or removing the parachute would otherwise not show until their
+    /// next equipment change. Sync is idempotent, so this also re-applies the pack
+    /// placement after "chute reload".
+    /// </summary>
+    internal static void SyncRemote(EntityPlayer player)
+    {
+        if (player == null || player is EntityPlayerLocal) return;
+        EModelSDCS model = player.emodel as EModelSDCS;
+        if (model == null || model.boneCatalog == null) return;
+        Sync(player, model.boneCatalog, WornKind.World);
+    }
+
     /// <summary>Re-applies placement live (used by "chute reload").</summary>
     internal static void ReapplyPlacement()
     {

@@ -141,5 +141,5 @@
   "flutter_pitch": 0.7,
 
   // Verbose logging and an on-screen readout. Default: false
-  "debug": true
+  "debug": false
 }
