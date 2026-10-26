@@ -11,9 +11,11 @@ $project = Join-Path $repoRoot 'src\Parachute\Parachute.csproj'
 $distDir = Join-Path $repoRoot 'dist'
 
 # Compile. The build copies Parachute.dll into Mod\Parachute. Warnings count
-# as a failure: the build is kept at 0 warnings.
+# as a failure: the build is kept at 0 warnings. --no-incremental always
+# recompiles: an up-to-date build writes nothing, which would fail the
+# freshness check below and would also hide warnings from the earlier build.
 $buildStart = Get-Date
-$buildOutput = & dotnet build $project -c Release -nologo 2>&1
+$buildOutput = & dotnet build $project -c Release -nologo --no-incremental 2>&1
 if ($LASTEXITCODE -ne 0) { $buildOutput | Select-Object -Last 20; throw 'Build failed.' }
 if (-not ($buildOutput | Select-String -SimpleMatch '0 Warning(s)' -Quiet)) {
     $buildOutput | Select-String -Pattern 'warning' | Select-Object -First 20
